@@ -31,13 +31,13 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import javax.sql.DataSource;
 
 import java.sql.Driver;
 import java.util.Objects;
 
-import static org.springframework.boot.autoconfigure.security.servlet.PathRequest.toH2Console;
 import static org.springframework.security.config.Customizer.*;
 
 @Configuration
@@ -127,7 +127,8 @@ public class SecurityConfig {
                     auth -> auth
                         /** in case csrf is enabled and you need to exclude some endpoints from authentication */
                         //.requestMatchers(new AntPathRequestMatcher("/h2-console/**")).permitAll()
-                        .requestMatchers(toH2Console()).permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/**")).permitAll()
+//                        .requestMatchers(toH2Console()).permitAll()
                         /** in case csrf is enabled and you need to exclude some endpoints from authentication */
                         .anyRequest()
                         .authenticated()
