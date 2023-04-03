@@ -126,9 +126,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(
                     auth -> auth
                         /** in case csrf is enabled and you need to exclude some endpoints from authentication */
-                        //.requestMatchers(new AntPathRequestMatcher("/h2-console/**")).permitAll()
-                        .requestMatchers(new AntPathRequestMatcher("/**")).permitAll()
-//                        .requestMatchers(toH2Console()).permitAll()
+                        .requestMatchers(
+                                new AntPathRequestMatcher("/h2-console/**"), //could use this => toH2Console() instead of this => new AntPathRequestMatcher("/h2-console/**")
+                                new AntPathRequestMatcher("/sign-up")
+                        ).permitAll()
                         /** in case csrf is enabled and you need to exclude some endpoints from authentication */
                         .anyRequest()
                         .authenticated()
