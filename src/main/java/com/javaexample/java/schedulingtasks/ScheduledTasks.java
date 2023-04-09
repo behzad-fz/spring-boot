@@ -42,9 +42,10 @@ public class ScheduledTasks {
                 .uri("http://127.0.0.1:8080/ping")
                 .retrieve()
                 .bodyToMono(String.class)
+                .onErrorReturn("Not available! come back later!!")
                 .block();
 
 
-        log.info("The ping response to rust apis says: {}", response);
+        log.info("The Ping request to Rust apis says: {}", response);
     }
 }
