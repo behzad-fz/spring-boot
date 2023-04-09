@@ -5,11 +5,19 @@ import java.util.Date;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClient;
 
 @Component
 public class ScheduledTasks {
+
+    @Autowired
+    private WebClient client;
+
+    @Autowired
+    private  WebClient.Builder webClientBuilder;
 
     private static final Logger log = LoggerFactory.getLogger(ScheduledTasks.class);
 
@@ -25,7 +33,18 @@ public class ScheduledTasks {
     //"0 0 9-17 * * MON-FRI" = on the hour nine-to-five weekdays
     //"0 0 0 25 12 ?" = every Christmas Day at midnight
     @Scheduled(fixedRate = 5000)
-    public void reportCurrentTime() {
+    public void reportUptime() {
+
         log.info("The time is now {}", dateFormat.format(new Date()));
+
+        String response = webClientBuilder.build()
+                .get()
+                .uri("http://127.0.0.1:8080/ping")
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+
+
+        log.info("The ping response to rust apis says: {}", response);
     }
 }
