@@ -19,4 +19,9 @@ public class UserController {
     public String admin() {
         return "Hello admin!";
     }
+
+    @GetMapping("/guest")
+    public String guest() {
+        return "Hello guest!";
+    }
 }
