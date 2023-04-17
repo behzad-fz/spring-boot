@@ -57,4 +57,8 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
+
+
+    @OneToMany(mappedBy = "user")
+    private List<Token> tokens;
 }
