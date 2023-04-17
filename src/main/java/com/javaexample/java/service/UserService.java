@@ -12,8 +12,8 @@ public class UserService {
     @Autowired
     private UserRepository userRepository;
 
-    @Autowired
-    private PasswordEncoder encoder;
+//    @Autowired
+//    private PasswordEncoder encoder;
 
     public User saveUser(User user) {
         return userRepository.save(user);
