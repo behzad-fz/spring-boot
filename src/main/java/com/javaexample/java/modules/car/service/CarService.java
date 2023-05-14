@@ -41,7 +41,5 @@ public class CarService {
         if (request.getModelId().isPresent()) {
             car.setModelId(request.getModelId().get());
         }
-
-        carRepository.save(car);
     }
 }
