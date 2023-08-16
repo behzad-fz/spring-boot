@@ -1,0 +1,3 @@
+ALTER TABLE customers
+MODIFY uuid VARCHAR(36) NOT NULL,
+ADD CONSTRAINT UK_customers_uuid UNIQUE (uuid);
