@@ -3,6 +3,7 @@ package com.bank.modules.customer.controller;
 import com.bank.modules.customer.entity.Customer;
 import com.bank.modules.customer.request.NewCustomerRequest;
 import com.bank.modules.customer.service.CustomerService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,7 +21,7 @@ public class CustomerController {
     }
 
     @PostMapping
-    public ResponseEntity<Customer> saveCustomer(@RequestBody NewCustomerRequest request) {
+    public ResponseEntity<Customer> saveCustomer(@Valid @RequestBody NewCustomerRequest request) {
 
         var customer = customerService.save(request);
 
