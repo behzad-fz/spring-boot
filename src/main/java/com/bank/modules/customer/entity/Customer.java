@@ -18,25 +18,35 @@ public class Customer {
     @Column(name = "id")
     private Long id;
 
-    @GeneratedValue(generator = "uuid2")
-    @GenericGenerator(name = "uuid2", strategy = "org.hibernate.id.UUIDGenerator")
-    @Column(name = "uuid", columnDefinition = "VARCHAR(36)")
+    @Column(
+        name = "uuid",
+        columnDefinition = "VARCHAR(36)",
+        nullable = false,
+        unique = true
+    )
     private String UUID;
 
-    @Column(name = "first_name")
+    @Column(name = "first_name", length = 50, nullable = false)
     private String firstName;
 
-    @Column(name = "last_name")
+    @Column(name = "last_name", length = 50, nullable = false)
     private String lastName;
 
-    @Column(name = "date_of_birth")
+    @Column(name = "date_of_birth", columnDefinition = "DATE", nullable = false)
     private LocalDate dateOfBirth;
 
-    @Column(name = "email", length = 100)
+    @Column(name = "email", length = 50, nullable = false)
     private String email;
 
-    @Column(name = "phone_number", length = 20)
+    @Column(name = "phone_number", length = 20, nullable = false)
     private String phoneNumber;
+
+    @PrePersist
+    private void generateUuid() {
+        if (UUID == null) {
+            UUID = java.util.UUID.randomUUID().toString();
+        }
+    }
 
 //    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
 //    private List<Address> addresses = new ArrayList<>();
