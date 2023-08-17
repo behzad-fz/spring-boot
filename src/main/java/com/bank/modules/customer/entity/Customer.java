@@ -53,7 +53,6 @@ public class Customer {
         }
     }
 
-//    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
-//    private List<Address> addresses = new ArrayList<>();
-
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
+    private List<CustomerAddress> addresses = new ArrayList<>();
 }
