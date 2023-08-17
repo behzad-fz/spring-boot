@@ -1,7 +1,9 @@
 package com.bank.modules.customer.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Builder;
+import lombok.Data;
 import org.hibernate.annotations.GenericGenerator;
 
 import java.time.LocalDate;
@@ -11,11 +13,14 @@ import java.util.List;
 @Entity
 @Table(name = "customers")
 @Builder
+@Data // adds methods like toString and...
 public class Customer {
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
+    @JsonIgnore
     private Long id;
 
     @Column(
