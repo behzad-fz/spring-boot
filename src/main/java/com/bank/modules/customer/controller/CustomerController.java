@@ -4,6 +4,7 @@ import com.bank.modules.customer.entity.Customer;
 import com.bank.modules.customer.request.NewCustomerRequest;
 import com.bank.modules.customer.service.CustomerService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,6 +26,6 @@ public class CustomerController {
 
         var customer = customerService.save(request);
 
-        return ResponseEntity.ok(customer);
+        return ResponseEntity.status(HttpStatus.CREATED).body(customer);
     }
 }
