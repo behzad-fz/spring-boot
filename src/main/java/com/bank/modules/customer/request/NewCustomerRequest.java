@@ -1,5 +1,7 @@
 package com.bank.modules.customer.request;
 
+import com.bank.validtionRule.CustomLocalDateDeserializer;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Size;
@@ -21,8 +23,8 @@ public class NewCustomerRequest {
     @Size(min = 3, max = 50)
     private String lastName;
 
-//    @NotBlank(message = "DOB is required")
     @Past(message = "DOB must be in the past!")
+    @JsonDeserialize(using = CustomLocalDateDeserializer.class)
     private LocalDate dateOfBirth;
 
     @NotBlank(message = "Email is required")
