@@ -10,8 +10,14 @@ import org.springframework.stereotype.Service;
 @Service
 public class CustomerAddressService {
 
-    private CustomerAddressRepository addressRepository;
-    private CustomerRepository customerRepository;
+    private final CustomerAddressRepository addressRepository;
+    private final CustomerRepository customerRepository;
+
+
+    public CustomerAddressService(CustomerAddressRepository addressRepository, CustomerRepository customerRepository) {
+        this.customerRepository = customerRepository;
+        this.addressRepository = addressRepository;
+    }
 
     public CustomerAddress save(NewCustomerAddressRequest addressRequest, String customerUUID) {
         var address = CustomerAddress.builder()
@@ -21,6 +27,7 @@ public class CustomerAddressService {
                 .postalCode(addressRequest.getPostalCode())
                 .extraInformation(addressRequest.getExtraInformation())
                 .build();
+
 
         Customer customer = customerRepository.findByUUID(customerUUID);
         address.setCustomer(customer);

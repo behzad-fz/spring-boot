@@ -1,13 +1,17 @@
 package com.bank.modules.customer.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Data
 @Builder
 @Table(name = "customer_addresses")
+@NoArgsConstructor
+@AllArgsConstructor
 public class CustomerAddress {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

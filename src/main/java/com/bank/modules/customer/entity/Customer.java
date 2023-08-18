@@ -2,8 +2,10 @@ package com.bank.modules.customer.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.GenericGenerator;
 
 import java.time.LocalDate;
@@ -14,6 +16,8 @@ import java.util.List;
 @Table(name = "customers")
 @Builder
 @Data // adds methods like toString and...
+@NoArgsConstructor
+@AllArgsConstructor
 public class Customer {
 
 
