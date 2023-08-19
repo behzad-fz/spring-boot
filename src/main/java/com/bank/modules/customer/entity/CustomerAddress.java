@@ -1,5 +1,6 @@
 package com.bank.modules.customer.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -29,5 +30,10 @@ public class CustomerAddress {
 
     @ManyToOne
     @JoinColumn(name = "customer_id")
+    @JsonIgnore
     private Customer customer;
+
+    public void setCustomer(Customer customer) {
+        this.customer = customer;
+    }
 }
