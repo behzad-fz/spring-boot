@@ -7,6 +7,8 @@ import com.bank.modules.customer.repository.CustomerRepository;
 import com.bank.modules.customer.request.NewCustomerAddressRequest;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class CustomerAddressService {
 
@@ -17,6 +19,12 @@ public class CustomerAddressService {
     public CustomerAddressService(CustomerAddressRepository addressRepository, CustomerRepository customerRepository) {
         this.customerRepository = customerRepository;
         this.addressRepository = addressRepository;
+    }
+
+    public List<CustomerAddress> getAll(String customerUUID) {
+        Customer customer =  customerRepository.findByUUID(customerUUID);
+
+        return addressRepository.findByCustomerId(customer.getId());
     }
 
     public CustomerAddress save(NewCustomerAddressRequest addressRequest, String customerUUID) {
