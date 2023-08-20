@@ -6,6 +6,8 @@ import com.bank.modules.customer.request.NewCustomerRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 //@RequiredArgsConstructor // this can be used to automatically do constructor injections
 public class CustomerService {
@@ -14,6 +16,10 @@ public class CustomerService {
 
     public CustomerService(CustomerRepository customerRepository) {
         this.customerRepository = customerRepository;
+    }
+
+    public List<Customer> getCustomers() {
+        return customerRepository.findAll();
     }
 
     public Customer save(NewCustomerRequest customerRequest) {
