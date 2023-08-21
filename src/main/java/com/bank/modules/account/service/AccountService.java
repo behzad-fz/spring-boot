@@ -23,8 +23,6 @@ public class AccountService {
     public Account save(NewAccountRequest request, String customerUUID) {
         var account = Account.builder()
                 .type(request.getType())
-                .balance(BigDecimal.valueOf(0))
-                .status(AccountStatus.INACTIVE)
                 .build();
 
         Customer customer = customerRepository.findByUUID(customerUUID);
