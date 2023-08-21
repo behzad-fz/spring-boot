@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("api/v1/customers/{customerUUID}/accounts")
 public class AccountController {
@@ -17,6 +19,13 @@ public class AccountController {
 
     public AccountController(AccountService accountService) {
         this.accountService = accountService;
+    }
+
+    @GetMapping
+    private ResponseEntity<List<Account>> getAll(@PathVariable String customerUUID) {
+        List<Account> accounts = accountService.getAll(customerUUID);
+
+        return ResponseEntity.ok(accounts);
     }
 
     @PostMapping

@@ -10,6 +10,7 @@ import com.bank.modules.customer.repository.CustomerRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Service
 public class AccountService {
@@ -19,6 +20,12 @@ public class AccountService {
     public AccountService(AccountRepository accountRepository, CustomerRepository customerRepository) {
         this.accountRepository = accountRepository;
         this.customerRepository = customerRepository;
+    }
+
+    public List<Account> getAll(String customerUUID) {
+        Customer customer =  customerRepository.findByUUID(customerUUID);
+
+        return accountRepository.findByCustomerId(customer.getId());
     }
 
     public Account save(NewAccountRequest request, String customerUUID) {
