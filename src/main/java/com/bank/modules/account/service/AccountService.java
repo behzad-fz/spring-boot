@@ -4,6 +4,7 @@ import com.bank.modules.account.entity.Account;
 import com.bank.modules.account.enums.AccountStatus;
 import com.bank.modules.account.repository.AccountRepository;
 import com.bank.modules.account.request.NewAccountRequest;
+import com.bank.modules.account.request.UpdateAccountStatusRequest;
 import com.bank.modules.customer.entity.Customer;
 import com.bank.modules.customer.repository.CustomerRepository;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,13 @@ public class AccountService {
 
         Customer customer = customerRepository.findByUUID(customerUUID);
         account.setCustomer(customer);
+
+        return accountRepository.save(account);
+    }
+
+    public Account updateStatus(UpdateAccountStatusRequest request, String accountUUID) {
+        Account account = accountRepository.findByUUID(accountUUID);
+        account.setStatus(request.getStatus());
 
         return accountRepository.save(account);
     }

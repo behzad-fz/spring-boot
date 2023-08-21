@@ -2,6 +2,7 @@ package com.bank.modules.account.controller;
 
 import com.bank.modules.account.entity.Account;
 import com.bank.modules.account.request.NewAccountRequest;
+import com.bank.modules.account.request.UpdateAccountStatusRequest;
 import com.bank.modules.account.service.AccountService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -26,5 +27,15 @@ public class AccountController {
         Account account = accountService.save(request, customerUUID);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(account);
+    }
+
+    @PatchMapping("/{accountUUID}")
+    private ResponseEntity<Account> updateStatus(
+            @Valid @RequestBody UpdateAccountStatusRequest request,
+            @PathVariable String accountUUID
+    ) {
+        Account account = accountService.updateStatus(request, accountUUID);
+
+        return ResponseEntity.ok(account);
     }
 }
