@@ -83,6 +83,8 @@ public class Account {
         updatedAt = LocalDateTime.now();
         accountNumber = AccountNumberGenerator.generateAccountNumber();
         generateUuid();
+        balance = BigDecimal.valueOf(0);
+        status = AccountStatus.INACTIVE;
     }
 
     @PreUpdate
