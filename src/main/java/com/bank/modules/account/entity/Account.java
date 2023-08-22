@@ -3,6 +3,7 @@ package com.bank.modules.account.entity;
 import com.bank.modules.account.enums.AccountStatus;
 import com.bank.modules.account.enums.AccountType;
 import com.bank.modules.account.helpers.AccountNumberGenerator;
+import com.bank.modules.account.listener.AccountActivatedListener;
 import com.bank.modules.customer.entity.Customer;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
@@ -21,6 +22,7 @@ import java.time.LocalDateTime;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@EntityListeners(AccountActivatedListener.class)
 public class Account {
 
     @Id
