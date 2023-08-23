@@ -1,7 +1,7 @@
 package com.bank.modules.customer.controller;
 
 import com.bank.modules.customer.entity.Customer;
-import com.bank.modules.customer.request.NewCustomerRequest;
+import com.bank.modules.customer.request.CustomerRequest;
 import com.bank.modules.customer.service.CustomerService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -28,10 +28,26 @@ public class CustomerController {
     }
 
     @PostMapping
-    public ResponseEntity<Customer> saveCustomer(@Valid @RequestBody NewCustomerRequest request) {
+    public ResponseEntity<Customer> saveCustomer(@Valid @RequestBody CustomerRequest request) {
 
         var customer = customerService.save(request);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(customer);
+    }
+
+    @PutMapping("{customerUUID}")
+    public ResponseEntity<Customer> updateCustomer(
+            @Valid @RequestBody CustomerRequest request,
+            @PathVariable String customerUUID
+    ) {
+        Customer customer;
+        
+        try {
+            customer = customerService.update(request, customerUUID);
+        } catch (Exception exception) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+        return ResponseEntity.ok(customer);
     }
 }

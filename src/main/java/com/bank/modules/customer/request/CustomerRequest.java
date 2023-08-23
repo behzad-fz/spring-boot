@@ -13,7 +13,7 @@ import java.time.LocalDate;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class NewCustomerRequest {
+public class CustomerRequest {
 
     @NotBlank(message = "First name is required")
     @Size(min = 3, max = 50)
