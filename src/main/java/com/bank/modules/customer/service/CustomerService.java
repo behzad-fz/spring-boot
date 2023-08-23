@@ -2,7 +2,7 @@ package com.bank.modules.customer.service;
 
 import com.bank.modules.customer.entity.Customer;
 import com.bank.modules.customer.repository.CustomerRepository;
-import com.bank.modules.customer.request.NewCustomerRequest;
+import com.bank.modules.customer.request.CustomerRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +22,7 @@ public class CustomerService {
         return customerRepository.findAll();
     }
 
-    public Customer save(NewCustomerRequest customerRequest) {
+    public Customer save(CustomerRequest customerRequest) {
         var customer = Customer.builder()
                 .firstName(customerRequest.getFirstName())
                 .lastName(customerRequest.getLastName())
@@ -30,6 +30,18 @@ public class CustomerService {
                 .phoneNumber(customerRequest.getPhoneNumber())
                 .dateOfBirth(customerRequest.getDateOfBirth())
                 .build();
+
+        return customerRepository.save(customer);
+    }
+
+    public Customer update(CustomerRequest customerRequest, String uuid) {
+        Customer customer = customerRepository.findByUUID(uuid);
+
+        customer.setFirstName(customerRequest.getFirstName());
+        customer.setLastName(customerRequest.getLastName());
+        customer.setEmail(customerRequest.getEmail());
+        customer.setPhoneNumber(customerRequest.getPhoneNumber());
+        customer.setDateOfBirth(customerRequest.getDateOfBirth());
 
         return customerRepository.save(customer);
     }
