@@ -34,8 +34,12 @@ public class CustomerService {
         return customerRepository.save(customer);
     }
 
-    public Customer update(CustomerRequest customerRequest, String uuid) {
+    public Customer update(CustomerRequest customerRequest, String uuid) throws Exception {
         Customer customer = customerRepository.findByUUID(uuid);
+
+        if (customer == null) {
+            throw new Exception("Customer not found");
+        }
 
         customer.setFirstName(customerRequest.getFirstName());
         customer.setLastName(customerRequest.getLastName());

@@ -40,7 +40,13 @@ public class CustomerController {
             @Valid @RequestBody CustomerRequest request,
             @PathVariable String customerUUID
     ) {
-        Customer customer = customerService.update(request, customerUUID);
+        Customer customer;
+        
+        try {
+            customer = customerService.update(request, customerUUID);
+        } catch (Exception exception) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
 
         return ResponseEntity.ok(customer);
     }
