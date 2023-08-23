@@ -33,9 +33,7 @@ public class AccountActivatedListener {
     public void onStatusUpdate(Account account) {
         if (currentStatus != AccountStatus.ACTIVE && account.getStatus() == AccountStatus.ACTIVE) {
             account.setOpenDate(LocalDate.now());
-
             accountRepository.save(account);
-
             sendActivationEmail(account);
         }
     }
@@ -45,6 +43,7 @@ public class AccountActivatedListener {
         MimeMessageHelper helper = new MimeMessageHelper(mimeMessage);
 
         try {
+            helper.setFrom("support@bank.com");
             helper.setTo(account.getCustomer().getEmail());
             helper.setSubject("Account Activation");
             helper.setText("Your account has been activated.");
