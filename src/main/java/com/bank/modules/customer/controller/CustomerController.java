@@ -27,6 +27,15 @@ public class CustomerController {
         return ResponseEntity.ok(customers);
     }
 
+    @GetMapping("search")
+    public ResponseEntity<List<Customer>> search(
+            @RequestParam(required = true) String queryString
+    ) {
+        List<Customer> customers = customerService.searchForCustomer(queryString);
+
+        return ResponseEntity.ok(customers);
+    }
+
     @PostMapping
     public ResponseEntity<Customer> saveCustomer(@Valid @RequestBody CustomerRequest request) {
 
