@@ -49,4 +49,14 @@ public class CustomerService {
 
         return customerRepository.save(customer);
     }
+
+    public void delete(String uuid) throws Exception {
+        Customer customer = customerRepository.findByUUID(uuid);
+
+        if (customer == null) {
+            throw new Exception("Custoemr not fount");
+        }
+
+        customerRepository.delete(customer);
+    }
 }
