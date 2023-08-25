@@ -22,6 +22,10 @@ public class CustomerService {
         return customerRepository.findAll();
     }
 
+    public List<Customer> searchForCustomer(String queryString) {
+        return customerRepository.findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCaseOrEmailContainingIgnoreCase(queryString, queryString, queryString);
+    }
+
     public Customer save(CustomerRequest customerRequest) {
         var customer = Customer.builder()
                 .firstName(customerRequest.getFirstName())
