@@ -4,6 +4,7 @@ import com.bank.modules.account.entity.Account;
 import com.bank.modules.account.repository.AccountRepository;
 import com.bank.modules.transaction.entity.Transaction;
 import com.bank.modules.transaction.enums.TransactionStatus;
+import com.bank.modules.transaction.enums.TransactionType;
 import com.bank.modules.transaction.repository.TransactionRepository;
 import com.bank.modules.transaction.request.NewTransaction;
 import jakarta.transaction.Transactional;
@@ -28,7 +29,7 @@ public class TransactionService {
 
         Transaction transaction = Transaction.builder()
                 .amount(newTransaction.getAmount())
-                .transactionType(newTransaction.getTransactionType())
+                .transactionType(TransactionType.valueOf(newTransaction.getTransactionType()))
                 .description(newTransaction.getDescription())
                 .build();
 

@@ -1,6 +1,7 @@
 package com.bank.modules.transaction.request;
 
-import com.bank.modules.transaction.enums.TransactionType;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,7 +14,11 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 public class NewTransaction {
+    @NotNull
     private BigDecimal amount;
+
+    @Pattern(regexp = "DEPOSIT|WITHDRAWAL|PAYMENT|TRANSFER|CURRENCY_CONVERSION", message = "Invalid type of transaction")
+    private String transactionType;
+
     private String description;
-    private TransactionType transactionType;
 }
