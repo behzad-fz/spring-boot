@@ -5,6 +5,7 @@ import com.bank.modules.account.enums.AccountType;
 import com.bank.modules.account.helpers.AccountNumberGenerator;
 import com.bank.modules.account.listener.AccountActivatedListener;
 import com.bank.modules.customer.entity.Customer;
+import com.bank.modules.transaction.entity.Transaction;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -15,6 +16,8 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "accounts")
@@ -108,4 +111,7 @@ public class Account {
     public void setCustomer(Customer customer) {
         this.customer = customer;
     }
+
+    @OneToMany(mappedBy = "account", cascade = CascadeType.ALL)
+    private List<Transaction> transactions = new ArrayList<>();
 }
