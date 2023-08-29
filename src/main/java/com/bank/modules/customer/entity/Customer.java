@@ -1,6 +1,7 @@
 package com.bank.modules.customer.entity;
 
 import com.bank.modules.account.entity.Account;
+import com.bank.modules.transaction.entity.Recipient;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -63,4 +64,7 @@ public class Customer {
 
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
     private List<Account> accounts = new ArrayList<>();
+
+    @OneToMany(mappedBy = "customer")
+    private List<Recipient> recipients = new ArrayList<>();
 }
