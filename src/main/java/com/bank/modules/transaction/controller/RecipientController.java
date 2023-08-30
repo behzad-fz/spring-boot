@@ -35,4 +35,11 @@ public class RecipientController {
 
         return ResponseEntity.ok(recipient);
     }
+
+    @DeleteMapping("{id}")
+    private ResponseEntity<Void> delete(@PathVariable Long id) {
+        recipientService.delete(id);
+
+        return ResponseEntity.noContent().build();
+    }
 }

@@ -40,4 +40,8 @@ public class RecipientService {
 
         return recipientRepository.save(recipient);
     }
+
+    public void delete(Long id) {
+        recipientRepository.deleteById(id);
+    }
 }
