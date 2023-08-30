@@ -7,6 +7,8 @@ import com.bank.modules.transaction.repository.RecipientRepository;
 import com.bank.modules.transaction.request.NewRecipient;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class RecipientService {
 
@@ -16,6 +18,12 @@ public class RecipientService {
     public RecipientService(RecipientRepository recipientRepository, CustomerRepository customerRepository) {
         this.recipientRepository = recipientRepository;
         this.customerRepository = customerRepository;
+    }
+
+    public List<Recipient> getAll(String customerUUID) {
+        Customer customer = customerRepository.findByUUID(customerUUID);
+
+        return customer.getRecipients();
     }
 
     public Recipient save(NewRecipient newRecipient, String customerUUID) {

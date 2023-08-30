@@ -10,7 +10,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "recipients")
+@Table(
+    name = "recipients",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"iban"})
+)
 @Builder
 @Data
 @AllArgsConstructor
@@ -39,7 +42,8 @@ public class Recipient {
     @Column(
             name = "iban",
             columnDefinition = "VARCHAR(30)",
-            nullable = false
+            nullable = false,
+            unique = true
     )
     private String iban;
 

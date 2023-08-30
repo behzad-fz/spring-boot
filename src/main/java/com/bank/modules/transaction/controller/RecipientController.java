@@ -7,6 +7,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("api/v1/customers/{customerUUID}/recipients")
 public class RecipientController {
@@ -15,6 +17,13 @@ public class RecipientController {
 
     public RecipientController(RecipientService recipientService) {
         this.recipientService = recipientService;
+    }
+
+    @GetMapping
+    private ResponseEntity<List<Recipient>> getAll(@PathVariable String customerUUID) {
+        List<Recipient> recipients = recipientService.getAll(customerUUID);
+
+        return ResponseEntity.ok(recipients);
     }
 
     @PostMapping
