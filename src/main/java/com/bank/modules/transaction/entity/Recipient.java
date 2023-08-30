@@ -10,7 +10,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "recipients")
+@Table(
+    name = "recipients",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"iban"})
+)
 @Builder
 @Data
 @AllArgsConstructor
@@ -19,7 +22,6 @@ public class Recipient {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    @JsonIgnore
     private Long id;
 
     @Column(
@@ -39,7 +41,8 @@ public class Recipient {
     @Column(
             name = "iban",
             columnDefinition = "VARCHAR(30)",
-            nullable = false
+            nullable = false,
+            unique = true
     )
     private String iban;
 
