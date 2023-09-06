@@ -3,8 +3,6 @@ package com.bank.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.annotation.Order;
-import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -22,8 +20,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 //@Order(0)
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
-//    private final AuthenticationProvider authenticationProvider;
-    private final AuthenticationProvider customAuthenticationProvider;
+    private final CustomUserAuthenticationProvider customAuthenticationProvider;
+    private final CustomCustomerAuthenticationProvider customCustomerAuthenticationProvider;
 
 
     private final LogoutHandler logoutHandler;
@@ -38,7 +36,7 @@ public class SecurityConfig {
                 .cors()
                 .and()
                 .authorizeHttpRequests()
-                .requestMatchers("/api/v1/auth/**")
+                .requestMatchers("/api/v1/auth/**", "/api/v1/customer-auth/**")
                 .permitAll()
                 .anyRequest()
                 .authenticated()
@@ -47,6 +45,7 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
                 .authenticationProvider(customAuthenticationProvider)
+                .authenticationProvider(customCustomerAuthenticationProvider)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .logout()
                 .logoutUrl("/api/v1/auth/logout")
