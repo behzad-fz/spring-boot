@@ -9,14 +9,13 @@ import com.bank.entity.TokenType;
 import com.bank.entity.User;
 import com.bank.repository.TokenRepository;
 import com.bank.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
-@RequiredArgsConstructor
 public class AuthenticationService {
 
     private final UserRepository userRepository;
@@ -28,6 +27,21 @@ public class AuthenticationService {
     private final PasswordEncoder encoder;
 
     private final AuthenticationManager manager;
+
+    public AuthenticationService(
+            UserRepository userRepository,
+            TokenRepository tokenRepository,
+            TokenService tokenService,
+            PasswordEncoder encoder,
+            @Qualifier("customAuthenticationManager") AuthenticationManager manager
+    ) {
+        this.userRepository = userRepository;
+        this.tokenRepository = tokenRepository;
+        this.tokenService = tokenService;
+        this.encoder = encoder;
+        this.manager = manager;
+    }
+
     public AuthenticationResponse register(RegisterRequest request) {
         var user = User.builder()
                 .firstName(request.getFirstName())

@@ -1,9 +1,11 @@
 package com.bank.modules.customer.service;
 
 import com.bank.modules.customer.entity.Customer;
+import com.bank.modules.customer.entity.CustomerRole;
 import com.bank.modules.customer.repository.CustomerRepository;
 import com.bank.modules.customer.request.CustomerRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,8 +16,11 @@ public class CustomerService {
 
     private final CustomerRepository customerRepository;
 
-    public CustomerService(CustomerRepository customerRepository) {
+    private final PasswordEncoder encoder;
+
+    public CustomerService(CustomerRepository customerRepository, PasswordEncoder passwordEncoder) {
         this.customerRepository = customerRepository;
+        this.encoder = passwordEncoder;
     }
 
     public List<Customer> getCustomers() {
@@ -33,6 +38,9 @@ public class CustomerService {
                 .email(customerRequest.getEmail())
                 .phoneNumber(customerRequest.getPhoneNumber())
                 .dateOfBirth(customerRequest.getDateOfBirth())
+                .username(customerRequest.getEmail())
+                .password(this.encoder.encode("test-random"))
+                .role(CustomerRole.ORDINARY_CUSTOMER)
                 .build();
 
         return customerRepository.save(customer);
