@@ -21,8 +21,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final CustomUserAuthenticationProvider customAuthenticationProvider;
-    private final CustomCustomerAuthenticationProvider customCustomerAuthenticationProvider;
-
 
     private final LogoutHandler logoutHandler;
 
@@ -45,7 +43,6 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
                 .authenticationProvider(customAuthenticationProvider)
-                .authenticationProvider(customCustomerAuthenticationProvider)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .logout()
                 .logoutUrl("/api/v1/auth/logout")
