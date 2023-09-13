@@ -54,7 +54,7 @@ public class AuthenticationService {
 
         var savedUser = userRepository.save(user);
 
-        var jwtToken = tokenService.generateToken(user);
+        var jwtToken = tokenService.generateToken(user, "user");
 
         saveToken(savedUser, jwtToken);
 
@@ -73,7 +73,7 @@ public class AuthenticationService {
 
         var user = userRepository.findByUsername(request.getUsername()).orElseThrow();
 
-        var jwtToken = tokenService.generateToken(user);
+        var jwtToken = tokenService.generateToken(user, "user");
 
         revokeAllTokens(user);
         saveToken(user, jwtToken);

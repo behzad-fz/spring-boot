@@ -50,17 +50,19 @@ public class TokenService {
 //        return this.encoder.encode(JwtEncoderParameters.from(claimsSet)).getTokenValue();
 //    }
 
-    public String generateToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(),userDetails);
+    public String generateToken(UserDetails userDetails, String userType) {
+        return generateToken(new HashMap<>(),userDetails, userType);
     }
 
     public String generateToken(
             Map<String, Object> extraClaims,
-            UserDetails userDetails
+            UserDetails userDetails,
+            String userType
     ) {
         return Jwts.builder()
                 .setClaims(extraClaims)
                 .setSubject(userDetails.getUsername())
+                .setAudience(userType)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24))
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
@@ -82,6 +84,10 @@ public class TokenService {
 
     public String extractUserName(String token) {
         return extractClaim(token, Claims::getSubject);
+    }
+
+    public String extractUserType(String token) {
+        return extractClaim(token, Claims::getAudience);
     }
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {

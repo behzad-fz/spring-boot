@@ -60,13 +60,13 @@ public class ApplicationConfig {
         return new CustomCustomerAuthenticationProvider(customerDetailsService, passwordEncoder);
     }
 
-    @Bean
+    @Bean(name = "customAuthenticationManager")
     @Primary
     public AuthenticationManager customAuthenticationManager(CustomUserAuthenticationProvider customUserAuthenticationProvider) {
         return new ProviderManager(customUserAuthenticationProvider);
     }
 
-    @Bean
+    @Bean(name = "customCustomerAuthenticationManager")
     public AuthenticationManager customCustomerAuthenticationManager(CustomCustomerAuthenticationProvider customCustomerAuthProvider) {
         return new ProviderManager(customCustomerAuthProvider);
     }

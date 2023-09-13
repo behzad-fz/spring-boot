@@ -56,7 +56,7 @@ public class CustomerAuthenticationService {
 
         var customer = customerRepository.findByUsername(request.getUsername()).orElseThrow();
 
-        var jwtToken = tokenService.generateToken(customer);
+        var jwtToken = tokenService.generateToken(customer, "customer");
 
         revokeAllTokens(customer);
         saveToken(customer, jwtToken);
