@@ -1,5 +1,8 @@
 package com.bank.service;
 
+import com.bank.entity.JwtToken;
+import com.bank.entity.Token;
+import com.bank.modules.customer.entity.CustomerToken;
 import com.bank.modules.customer.repository.CustomerTokenRepository;
 import com.bank.repository.TokenRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,6 +12,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.stereotype.Service;
+
+import java.security.InvalidParameterException;
 
 @Service
 @RequiredArgsConstructor
@@ -36,26 +41,29 @@ public class LogoutService implements LogoutHandler {
 
         userType = tokenService.extractUserType(jwt);
 
-        if (userType.equals("user")) {
-            var storedToken = tokenRepository.findByToken(jwt)
-                    .orElse(null);
+        var storedToken = getJwt(userType, jwt);
 
-            if (storedToken != null) {
-                storedToken.setExpired(true);
-                storedToken.setRevoked(true);
-                tokenRepository.save(storedToken);
-                SecurityContextHolder.clearContext();
-            }
-        } else {
-            var storedToken = customerTokenRepository.findByToken(jwt)
-                    .orElse(null);
+        if (storedToken != null) {
+            storedToken.setExpired(true);
+            storedToken.setRevoked(true);
+            revokeJwt(userType, storedToken);
+            SecurityContextHolder.clearContext();
+        }
+    }
 
-            if (storedToken != null) {
-                storedToken.setExpired(true);
-                storedToken.setRevoked(true);
-                customerTokenRepository.save(storedToken);
-                SecurityContextHolder.clearContext();
-            }
+    private JwtToken getJwt(String userType, String jwt) {
+        return switch (userType) {
+            case "user" -> tokenRepository.findByToken(jwt).orElse(null);
+            case "customer" -> customerTokenRepository.findByToken(jwt).orElse(null);
+            default -> throw new InvalidParameterException("User Type not supported");
+        };
+    }
+
+    private void revokeJwt(String userType, JwtToken jwt) {
+        switch (userType) {
+            case "user" -> tokenRepository.save((Token) jwt);
+            case "customer" -> customerTokenRepository.save((CustomerToken) jwt);
+            default -> throw new InvalidParameterException("User Type not supported");
         }
     }
 }
