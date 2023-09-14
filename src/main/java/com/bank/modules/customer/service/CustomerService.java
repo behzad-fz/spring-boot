@@ -4,7 +4,6 @@ import com.bank.modules.customer.entity.Customer;
 import com.bank.modules.customer.entity.CustomerRole;
 import com.bank.modules.customer.repository.CustomerRepository;
 import com.bank.modules.customer.request.CustomerRequest;
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -66,7 +65,7 @@ public class CustomerService {
         Customer customer = customerRepository.findByUUID(uuid);
 
         if (customer == null) {
-            throw new Exception("Custoemr not fount");
+            throw new Exception("Customer not fount");
         }
 
         customerRepository.delete(customer);
