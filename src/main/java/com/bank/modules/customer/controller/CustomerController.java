@@ -6,6 +6,9 @@ import com.bank.modules.customer.service.CustomerService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,6 +23,7 @@ public class CustomerController {
         this.customerService = customerService;
     }
 
+    @PreAuthorize("hasAuthority('USER')")
     @GetMapping
     public ResponseEntity<List<Customer>> getCustomers () {
         List<Customer> customers = customerService.getCustomers();
@@ -36,9 +40,9 @@ public class CustomerController {
         return ResponseEntity.ok(customers);
     }
 
+    @PreAuthorize("hasAuthority('USER')")
     @PostMapping
     public ResponseEntity<Customer> saveCustomer(@Valid @RequestBody CustomerRequest request) {
-
         var customer = customerService.save(request);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(customer);
