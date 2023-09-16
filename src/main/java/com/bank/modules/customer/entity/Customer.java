@@ -6,10 +6,7 @@ import com.bank.modules.account.entity.Account;
 import com.bank.modules.transaction.entity.Recipient;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -72,12 +69,18 @@ public class Customer implements UserDetails {
     private String password;
 
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
+    @ToString.Exclude
+    @JsonIgnore
     private List<CustomerAddress> addresses = new ArrayList<>();
 
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
+    @ToString.Exclude
+    @JsonIgnore
     private List<Account> accounts = new ArrayList<>();
 
     @OneToMany(mappedBy = "customer")
+    @ToString.Exclude
+    @JsonIgnore
     private List<Recipient> recipients = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
@@ -109,5 +112,7 @@ public class Customer implements UserDetails {
     }
 
     @OneToMany(mappedBy = "customer")
+    @ToString.Exclude
+    @JsonIgnore
     private List<CustomerToken> tokens;
 }
