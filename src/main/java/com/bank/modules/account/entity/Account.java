@@ -1,5 +1,6 @@
 package com.bank.modules.account.entity;
 
+import com.bank.enums.Currency;
 import com.bank.modules.account.enums.AccountStatus;
 import com.bank.modules.account.enums.AccountType;
 import com.bank.modules.account.helpers.AccountNumberGenerator;
@@ -50,6 +51,10 @@ public class Account {
         nullable = false
     )
     private BigDecimal balance;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "currency")
+    private Currency currency;
 
     @Column(name = "open_date")
     private LocalDate openDate;
