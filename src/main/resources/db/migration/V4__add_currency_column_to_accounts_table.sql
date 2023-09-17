@@ -1,0 +1,2 @@
+ALTER TABLE accounts
+ADD COLUMN currency VARCHAR(10) NOT NULL AFTER balance;
