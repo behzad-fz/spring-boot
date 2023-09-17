@@ -1,5 +1,6 @@
 package com.bank.modules.account.entity;
 
+import com.bank.enums.Currency;
 import com.bank.modules.account.enums.AccountStatus;
 import com.bank.modules.account.enums.AccountType;
 import com.bank.modules.account.helpers.AccountNumberGenerator;
@@ -8,10 +9,7 @@ import com.bank.modules.customer.entity.Customer;
 import com.bank.modules.transaction.entity.Transaction;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -53,6 +51,10 @@ public class Account {
         nullable = false
     )
     private BigDecimal balance;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "currency")
+    private Currency currency;
 
     @Column(name = "open_date")
     private LocalDate openDate;
@@ -113,5 +115,7 @@ public class Account {
     }
 
     @OneToMany(mappedBy = "account", cascade = CascadeType.ALL)
+    @ToString.Exclude
+    @JsonIgnore
     private List<Transaction> transactions = new ArrayList<>();
 }

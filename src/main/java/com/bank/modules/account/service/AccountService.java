@@ -1,5 +1,6 @@
 package com.bank.modules.account.service;
 
+import com.bank.enums.Currency;
 import com.bank.modules.account.entity.Account;
 import com.bank.modules.account.enums.AccountStatus;
 import com.bank.modules.account.repository.AccountRepository;
@@ -31,6 +32,8 @@ public class AccountService {
     public Account save(NewAccountRequest request, String customerUUID) {
         var account = Account.builder()
                 .type(request.getType())
+                // TODO: should get from request
+                .currency(Currency.GBP)
                 .build();
 
         Customer customer = customerRepository.findByUUID(customerUUID);

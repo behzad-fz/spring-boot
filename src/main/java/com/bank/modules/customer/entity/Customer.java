@@ -73,7 +73,7 @@ public class Customer implements UserDetails {
     @JsonIgnore
     private List<CustomerAddress> addresses = new ArrayList<>();
 
-    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @ToString.Exclude
     @JsonIgnore
     private List<Account> accounts = new ArrayList<>();
