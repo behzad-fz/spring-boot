@@ -8,10 +8,7 @@ import com.bank.modules.customer.entity.Customer;
 import com.bank.modules.transaction.entity.Transaction;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -113,5 +110,7 @@ public class Account {
     }
 
     @OneToMany(mappedBy = "account", cascade = CascadeType.ALL)
+    @ToString.Exclude
+    @JsonIgnore
     private List<Transaction> transactions = new ArrayList<>();
 }
