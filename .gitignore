@@ -34,3 +34,5 @@ build/
 /src/main/resources/certs/*.pem
 /src/notes.txt
 /src/overview.txt
+/src/main/resources/application-secrets.properties
+.env

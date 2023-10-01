@@ -59,6 +59,6 @@ public class User implements UserDetails {
     }
 
 
-    @OneToMany(mappedBy = "user")
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Token> tokens;
 }

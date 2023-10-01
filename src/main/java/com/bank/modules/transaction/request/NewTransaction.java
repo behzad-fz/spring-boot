@@ -18,6 +18,7 @@ public class NewTransaction {
     private BigDecimal amount;
 
     @Pattern(regexp = "DEPOSIT|WITHDRAWAL|PAYMENT|TRANSFER|CURRENCY_CONVERSION", message = "Invalid type of transaction")
+    @NotNull
     private String transactionType;
 
     private String description;
