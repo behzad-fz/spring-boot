@@ -35,3 +35,4 @@ build/
 /src/notes.txt
 /src/overview.txt
 /src/main/resources/application-secrets.properties
+.env
