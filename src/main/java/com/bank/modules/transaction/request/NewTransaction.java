@@ -2,6 +2,7 @@ package com.bank.modules.transaction.request;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,6 +16,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 public class NewTransaction {
     @NotNull
+    @Positive(message = "Amount must be positive")
     private BigDecimal amount;
 
     @Pattern(regexp = "DEPOSIT|WITHDRAWAL|PAYMENT|TRANSFER|CURRENCY_CONVERSION", message = "Invalid type of transaction")
