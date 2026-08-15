@@ -1,14 +1,17 @@
 package com.bank.modules.transaction.controller;
 
 import com.bank.modules.transaction.entity.CurrencyConversionResult;
+import com.bank.modules.transaction.entity.ScheduledTransaction;
 import com.bank.modules.transaction.entity.Transaction;
 import com.bank.modules.transaction.entity.TransferResult;
 import com.bank.modules.transaction.request.CurrencyConversionRequest;
 import com.bank.modules.transaction.request.NewTransaction;
 import com.bank.modules.transaction.request.RecipientPaymentRequest;
+import com.bank.modules.transaction.request.ScheduleTransactionRequest;
 import com.bank.modules.transaction.request.TransferRequest;
 import com.bank.modules.transaction.service.TransactionService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -59,6 +62,16 @@ public class TransactionController {
         CurrencyConversionResult result = transactionService.convertCurrency(accountUUID, request);
 
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/scheduled")
+    private ResponseEntity<ScheduledTransaction> scheduleTransaction(
+        @Valid @RequestBody ScheduleTransactionRequest request,
+        @PathVariable String accountUUID
+    ) {
+        ScheduledTransaction scheduled = transactionService.scheduleTransaction(accountUUID, request);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(scheduled);
     }
 
     @PostMapping("/transfer")

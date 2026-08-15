@@ -162,6 +162,23 @@ curl -X POST http://localhost:9001/api/v1/accounts/{sourceAccountUUID}/transacti
 Both accounts must belong to the authenticated customer; the exchange rate is
 caller-provided.
 
+**Scheduled payments** are created as pending and processed by the built-in
+scheduler when due (PENDING → COMPLETED/FAILED on insufficient funds):
+
+```bash
+curl -X POST http://localhost:9001/api/v1/accounts/{accountUUID}/transactions/scheduled \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": 100.00,
+    "description": "rent",
+    "runAt": "2026-09-01T09:00:00"
+  }'
+```
+
+`runAt` must be in the future. The account must belong to the authenticated
+customer.
+
 ## Known gotchas
 
 - **Customer temporary password**: a customer created via `POST /api/v1/customers` gets a

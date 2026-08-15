@@ -9,15 +9,18 @@ import com.bank.modules.customer.entity.Customer;
 import com.bank.modules.customer.entity.CustomerRole;
 import com.bank.modules.transaction.entity.CurrencyConversionResult;
 import com.bank.modules.transaction.entity.Recipient;
+import com.bank.modules.transaction.entity.ScheduledTransaction;
 import com.bank.modules.transaction.entity.Transaction;
 import com.bank.modules.transaction.entity.TransferResult;
 import com.bank.modules.transaction.enums.TransactionStatus;
 import com.bank.modules.transaction.enums.TransactionType;
 import com.bank.modules.transaction.repository.RecipientRepository;
+import com.bank.modules.transaction.repository.ScheduledTransactionRepository;
 import com.bank.modules.transaction.repository.TransactionRepository;
 import com.bank.modules.transaction.request.CurrencyConversionRequest;
 import com.bank.modules.transaction.request.NewTransaction;
 import com.bank.modules.transaction.request.RecipientPaymentRequest;
+import com.bank.modules.transaction.request.ScheduleTransactionRequest;
 import com.bank.modules.transaction.request.TransferRequest;
 import com.bank.enums.Currency;
 import org.junit.jupiter.api.AfterEach;
@@ -32,6 +35,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -49,6 +53,9 @@ class TransactionServiceTest {
 
     @Mock
     private RecipientRepository recipientRepository;
+
+    @Mock
+    private ScheduledTransactionRepository scheduledTransactionRepository;
 
     @InjectMocks
     private TransactionService transactionService;
@@ -677,6 +684,112 @@ class TransactionServiceTest {
                 () -> transactionService.getTransactions("account-uuid"));
 
         verify(transactionRepository, never()).findByAccountUUIDOrderByInitiatedAtDesc(anyString());
+    }
+
+    @Test
+    void scheduleTransactionCreatesPendingScheduledTransaction() {
+        Customer customer = new Customer();
+        customer.setUUID("customer-uuid");
+        account.setCustomer(customer);
+
+        authenticateAs(customer);
+
+        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+        when(scheduledTransactionRepository.save(any(ScheduledTransaction.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        ScheduleTransactionRequest request = ScheduleTransactionRequest.builder()
+                .amount(new BigDecimal("25.00"))
+                .description("rent")
+                .runAt(LocalDateTime.now().plusDays(1))
+                .build();
+
+        ScheduledTransaction result = transactionService.scheduleTransaction("account-uuid", request);
+
+        assertEquals(TransactionStatus.PENDING, result.getStatus());
+        assertEquals(TransactionType.WITHDRAWAL, result.getTransactionType());
+        verify(scheduledTransactionRepository).save(any(ScheduledTransaction.class));
+    }
+
+    @Test
+    void scheduleTransactionForAnotherCustomersAccountIsRejected() {
+        Customer owner = new Customer();
+        owner.setUUID("customer-uuid");
+        account.setCustomer(owner);
+
+        Customer other = new Customer();
+        other.setUUID("other-customer-uuid");
+        authenticateAs(other);
+
+        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+
+        ScheduleTransactionRequest request = ScheduleTransactionRequest.builder()
+                .amount(new BigDecimal("25.00"))
+                .runAt(LocalDateTime.now().plusDays(1))
+                .build();
+
+        assertThrows(AccessDeniedException.class,
+                () -> transactionService.scheduleTransaction("account-uuid", request));
+
+        verify(scheduledTransactionRepository, never()).save(any());
+    }
+
+    @Test
+    void processDueScheduledTransactionCompletesWhenFundsAvailable() {
+        Customer customer = new Customer();
+        customer.setUUID("customer-uuid");
+        account.setCustomer(customer);
+
+        ScheduledTransaction scheduled = ScheduledTransaction.builder()
+                .id(1L)
+                .amount(new BigDecimal("25.00"))
+                .transactionType(TransactionType.WITHDRAWAL)
+                .status(TransactionStatus.PENDING)
+                .account(account)
+                .build();
+
+        when(scheduledTransactionRepository.findByStatusAndRunAtLessThanEqual(any(), any()))
+                .thenReturn(List.of(scheduled));
+        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(scheduledTransactionRepository.save(any(ScheduledTransaction.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        transactionService.processDueScheduledTransactions();
+
+        assertEquals(TransactionStatus.COMPLETED, scheduled.getStatus());
+        assertNotNull(scheduled.getProcessedAt());
+        assertEquals(0, new BigDecimal("75.00").compareTo(account.getBalance()));
+    }
+
+    @Test
+    void processDueScheduledTransactionFailsOnInsufficientFunds() {
+        Customer customer = new Customer();
+        customer.setUUID("customer-uuid");
+        account.setCustomer(customer);
+
+        account.setBalance(new BigDecimal("10.00"));
+
+        ScheduledTransaction scheduled = ScheduledTransaction.builder()
+                .id(1L)
+                .amount(new BigDecimal("25.00"))
+                .transactionType(TransactionType.WITHDRAWAL)
+                .status(TransactionStatus.PENDING)
+                .account(account)
+                .build();
+
+        when(scheduledTransactionRepository.findByStatusAndRunAtLessThanEqual(any(), any()))
+                .thenReturn(List.of(scheduled));
+        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+        when(scheduledTransactionRepository.save(any(ScheduledTransaction.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        transactionService.processDueScheduledTransactions();
+
+        assertEquals(TransactionStatus.FAILED, scheduled.getStatus());
+        assertNotNull(scheduled.getStatusExplanation());
+        assertEquals(0, new BigDecimal("10.00").compareTo(account.getBalance()));
     }
 
     private void authenticateAs(Customer customer) {

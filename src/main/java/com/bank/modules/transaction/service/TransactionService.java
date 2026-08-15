@@ -8,15 +8,18 @@ import com.bank.modules.account.repository.AccountRepository;
 import com.bank.modules.customer.entity.Customer;
 import com.bank.modules.transaction.entity.CurrencyConversionResult;
 import com.bank.modules.transaction.entity.Recipient;
+import com.bank.modules.transaction.entity.ScheduledTransaction;
 import com.bank.modules.transaction.entity.Transaction;
 import com.bank.modules.transaction.entity.TransferResult;
 import com.bank.modules.transaction.enums.TransactionStatus;
 import com.bank.modules.transaction.enums.TransactionType;
 import com.bank.modules.transaction.repository.RecipientRepository;
+import com.bank.modules.transaction.repository.ScheduledTransactionRepository;
 import com.bank.modules.transaction.repository.TransactionRepository;
 import com.bank.modules.transaction.request.CurrencyConversionRequest;
 import com.bank.modules.transaction.request.NewTransaction;
 import com.bank.modules.transaction.request.RecipientPaymentRequest;
+import com.bank.modules.transaction.request.ScheduleTransactionRequest;
 import com.bank.modules.transaction.request.TransferRequest;
 import jakarta.transaction.Transactional;
 import org.springframework.security.access.AccessDeniedException;
@@ -35,12 +38,15 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
     private final RecipientRepository recipientRepository;
+    private final ScheduledTransactionRepository scheduledTransactionRepository;
 
     public TransactionService(TransactionRepository transactionRepository, AccountRepository accountRepository,
-                              RecipientRepository recipientRepository) {
+                              RecipientRepository recipientRepository,
+                              ScheduledTransactionRepository scheduledTransactionRepository) {
         this.transactionRepository = transactionRepository;
         this.accountRepository = accountRepository;
         this.recipientRepository = recipientRepository;
+        this.scheduledTransactionRepository = scheduledTransactionRepository;
     }
 
     @Transactional
@@ -115,6 +121,48 @@ public class TransactionService {
                 "Currency conversion", target.getBalance().add(targetAmount));
 
         return new CurrencyConversionResult(sourceLeg, targetLeg);
+    }
+
+    @Transactional
+    public ScheduledTransaction scheduleTransaction(String accountUUID, ScheduleTransactionRequest request) {
+        Account account = requireAccount(accountUUID);
+
+        ScheduledTransaction scheduled = ScheduledTransaction.builder()
+                .amount(request.getAmount())
+                .description(request.getDescription())
+                .transactionType(TransactionType.WITHDRAWAL)
+                .runAt(request.getRunAt())
+                .status(TransactionStatus.PENDING)
+                .account(account)
+                .build();
+
+        return scheduledTransactionRepository.save(scheduled);
+    }
+
+    @Transactional
+    public List<ScheduledTransaction> processDueScheduledTransactions() {
+        List<ScheduledTransaction> due = scheduledTransactionRepository
+                .findByStatusAndRunAtLessThanEqual(TransactionStatus.PENDING, LocalDateTime.now());
+
+        for (ScheduledTransaction scheduled : due) {
+            try {
+                createTransaction(NewTransaction.builder()
+                        .amount(scheduled.getAmount())
+                        .transactionType("WITHDRAWAL")
+                        .description(scheduled.getDescription())
+                        .build(), scheduled.getAccount().getUUID());
+
+                scheduled.setStatus(TransactionStatus.COMPLETED);
+                scheduled.setProcessedAt(LocalDateTime.now());
+            } catch (InsufficientFundsException ex) {
+                scheduled.setStatus(TransactionStatus.FAILED);
+                scheduled.setProcessedAt(LocalDateTime.now());
+                scheduled.setStatusExplanation(ex.getMessage());
+            }
+            scheduledTransactionRepository.save(scheduled);
+        }
+
+        return due;
     }
 
     @Transactional
