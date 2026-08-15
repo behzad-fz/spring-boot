@@ -1,12 +1,15 @@
 package com.bank.modules.customer.service;
 
 import com.bank.modules.customer.entity.Customer;
+import com.bank.modules.customer.entity.CustomerCreationResponse;
 import com.bank.modules.customer.entity.CustomerRole;
 import com.bank.modules.customer.repository.CustomerRepository;
 import com.bank.modules.customer.request.CustomerRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.List;
 
 @Service
@@ -16,6 +19,8 @@ public class CustomerService {
     private final CustomerRepository customerRepository;
 
     private final PasswordEncoder encoder;
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     public CustomerService(CustomerRepository customerRepository, PasswordEncoder passwordEncoder) {
         this.customerRepository = customerRepository;
@@ -30,7 +35,9 @@ public class CustomerService {
         return customerRepository.findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCaseOrEmailContainingIgnoreCase(queryString, queryString, queryString);
     }
 
-    public Customer save(CustomerRequest customerRequest) {
+    public CustomerCreationResponse save(CustomerRequest customerRequest) {
+        String temporaryPassword = generateTemporaryPassword();
+
         var customer = Customer.builder()
                 .firstName(customerRequest.getFirstName())
                 .lastName(customerRequest.getLastName())
@@ -38,11 +45,22 @@ public class CustomerService {
                 .phoneNumber(customerRequest.getPhoneNumber())
                 .dateOfBirth(customerRequest.getDateOfBirth())
                 .username(customerRequest.getEmail())
-                .password(this.encoder.encode("test-random"))
+                .password(this.encoder.encode(temporaryPassword))
                 .role(CustomerRole.ORDINARY_CUSTOMER)
                 .build();
 
-        return customerRepository.save(customer);
+        Customer persisted = customerRepository.save(customer);
+
+        return CustomerCreationResponse.builder()
+                .customer(persisted)
+                .temporaryPassword(temporaryPassword)
+                .build();
+    }
+
+    private String generateTemporaryPassword() {
+        byte[] bytes = new byte[12];
+        SECURE_RANDOM.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     public Customer update(CustomerRequest customerRequest, String uuid) throws Exception {

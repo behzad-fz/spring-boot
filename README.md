@@ -147,9 +147,9 @@ insufficient.
 
 ## Known gotchas
 
-- **Customer default password**: a customer created via `POST /api/v1/customers` gets a
-  hardcoded temporary password (`test-random`, see `CustomerService`) and `username`
-  defaults to their email. Change it after login via
+- **Customer temporary password**: a customer created via `POST /api/v1/customers` gets a
+  randomly generated temporary password, returned **once** in the creation response as
+  `temporaryPassword` (`username` defaults to their email). Change it after first login via
   `PUT /api/v1/customer-auth/update-my-credentials`.
 - **JDK mismatch**: building with anything other than Java 17 produces `cannot find
   symbol` errors on all Lombok-generated methods. Install Java 17 and point `JAVA_HOME`

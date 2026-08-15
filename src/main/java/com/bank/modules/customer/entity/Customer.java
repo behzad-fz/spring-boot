@@ -66,6 +66,7 @@ public class Customer implements UserDetails {
     private String username;
 
     @Column(name = "password", length = 255, nullable = false)
+    @JsonIgnore
     private String password;
 
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
