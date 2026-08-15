@@ -9,6 +9,7 @@ import com.bank.modules.customer.entity.Customer;
 import com.bank.modules.transaction.entity.CurrencyConversionResult;
 import com.bank.modules.transaction.entity.Recipient;
 import com.bank.modules.transaction.entity.Transaction;
+import com.bank.modules.transaction.entity.TransferResult;
 import com.bank.modules.transaction.enums.TransactionStatus;
 import com.bank.modules.transaction.enums.TransactionType;
 import com.bank.modules.transaction.repository.RecipientRepository;
@@ -16,6 +17,7 @@ import com.bank.modules.transaction.repository.TransactionRepository;
 import com.bank.modules.transaction.request.CurrencyConversionRequest;
 import com.bank.modules.transaction.request.NewTransaction;
 import com.bank.modules.transaction.request.RecipientPaymentRequest;
+import com.bank.modules.transaction.request.TransferRequest;
 import jakarta.transaction.Transactional;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -107,22 +109,43 @@ public class TransactionService {
 
         BigDecimal targetAmount = request.getAmount().multiply(request.getExchangeRate());
 
-        Transaction sourceLeg = persistLeg(source, request.getAmount().negate(),
+        Transaction sourceLeg = persistLeg(source, TransactionType.CURRENCY_CONVERSION, request.getAmount().negate(),
                 "Currency conversion", source.getBalance().subtract(request.getAmount()));
-        Transaction targetLeg = persistLeg(target, targetAmount,
+        Transaction targetLeg = persistLeg(target, TransactionType.CURRENCY_CONVERSION, targetAmount,
                 "Currency conversion", target.getBalance().add(targetAmount));
 
         return new CurrencyConversionResult(sourceLeg, targetLeg);
     }
 
-    private Transaction persistLeg(Account account, BigDecimal signedAmount, String description, BigDecimal newBalance) {
+    @Transactional
+    public TransferResult transferBetweenAccounts(String sourceAccountUUID, TransferRequest request) {
+        Account source = requireAccount(sourceAccountUUID);
+        Account target = requireAccount(request.getTargetAccountUUID());
+
+        if (source.getUUID().equals(target.getUUID())) {
+            throw new IllegalArgumentException("Source and target accounts must be different");
+        }
+
+        if (source.getCurrency() != target.getCurrency()) {
+            throw new IllegalArgumentException("Transfer requires accounts with the same currency; use currency conversion for different currencies");
+        }
+
+        Transaction sourceLeg = persistLeg(source, TransactionType.TRANSFER, request.getAmount().negate(),
+                "Transfer", source.getBalance().subtract(request.getAmount()));
+        Transaction targetLeg = persistLeg(target, TransactionType.TRANSFER, request.getAmount(),
+                "Transfer", target.getBalance().add(request.getAmount()));
+
+        return new TransferResult(sourceLeg, targetLeg);
+    }
+
+    private Transaction persistLeg(Account account, TransactionType type, BigDecimal signedAmount, String description, BigDecimal newBalance) {
         if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
             throw new InsufficientFundsException("Insufficient funds for this transaction");
         }
 
         Transaction transaction = Transaction.builder()
                 .amount(signedAmount.abs())
-                .transactionType(TransactionType.CURRENCY_CONVERSION)
+                .transactionType(type)
                 .description(description)
                 .build();
 

@@ -10,6 +10,7 @@ import com.bank.modules.customer.entity.CustomerRole;
 import com.bank.modules.transaction.entity.CurrencyConversionResult;
 import com.bank.modules.transaction.entity.Recipient;
 import com.bank.modules.transaction.entity.Transaction;
+import com.bank.modules.transaction.entity.TransferResult;
 import com.bank.modules.transaction.enums.TransactionStatus;
 import com.bank.modules.transaction.enums.TransactionType;
 import com.bank.modules.transaction.repository.RecipientRepository;
@@ -17,6 +18,7 @@ import com.bank.modules.transaction.repository.TransactionRepository;
 import com.bank.modules.transaction.request.CurrencyConversionRequest;
 import com.bank.modules.transaction.request.NewTransaction;
 import com.bank.modules.transaction.request.RecipientPaymentRequest;
+import com.bank.modules.transaction.request.TransferRequest;
 import com.bank.enums.Currency;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -485,6 +487,148 @@ class TransactionServiceTest {
 
         assertThrows(AccessDeniedException.class,
                 () -> transactionService.convertCurrency("source-account", request));
+
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void transferDebitsSourceAndCreditsDestination() {
+        Customer customer = new Customer();
+        customer.setUUID("customer-uuid");
+
+        Account source = new Account();
+        source.setUUID("source-account");
+        source.setBalance(new BigDecimal("100.00"));
+        source.setCurrency(Currency.EUR);
+        source.setCustomer(customer);
+
+        Account target = new Account();
+        target.setUUID("target-account");
+        target.setBalance(new BigDecimal("50.00"));
+        target.setCurrency(Currency.EUR);
+        target.setCustomer(customer);
+
+        authenticateAs(customer);
+
+        when(accountRepository.findByUUID("source-account")).thenReturn(source);
+        when(accountRepository.findByUUID("target-account")).thenReturn(target);
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        TransferRequest request = TransferRequest.builder()
+                .targetAccountUUID("target-account")
+                .amount(new BigDecimal("30.00"))
+                .build();
+
+        TransferResult result = transactionService.transferBetweenAccounts("source-account", request);
+
+        assertEquals(0, new BigDecimal("70.00").compareTo(source.getBalance()), "source debited");
+        assertEquals(0, new BigDecimal("80.00").compareTo(target.getBalance()), "destination credited");
+        assertEquals(TransactionType.TRANSFER, result.sourceLeg().getTransactionType());
+        assertEquals(TransactionType.TRANSFER, result.targetLeg().getTransactionType());
+        verify(accountRepository, times(2)).save(any(Account.class));
+    }
+
+    @Test
+    void transferRejectsInsufficientFunds() {
+        Customer customer = new Customer();
+        customer.setUUID("customer-uuid");
+
+        Account source = new Account();
+        source.setUUID("source-account");
+        source.setBalance(new BigDecimal("10.00"));
+        source.setCurrency(Currency.EUR);
+        source.setCustomer(customer);
+
+        Account target = new Account();
+        target.setUUID("target-account");
+        target.setBalance(new BigDecimal("50.00"));
+        target.setCurrency(Currency.EUR);
+        target.setCustomer(customer);
+
+        authenticateAs(customer);
+
+        when(accountRepository.findByUUID("source-account")).thenReturn(source);
+        when(accountRepository.findByUUID("target-account")).thenReturn(target);
+
+        TransferRequest request = TransferRequest.builder()
+                .targetAccountUUID("target-account")
+                .amount(new BigDecimal("30.00"))
+                .build();
+
+        assertThrows(InsufficientFundsException.class,
+                () -> transactionService.transferBetweenAccounts("source-account", request));
+
+        assertEquals(0, new BigDecimal("10.00").compareTo(source.getBalance()));
+        assertEquals(0, new BigDecimal("50.00").compareTo(target.getBalance()));
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void transferRejectsCurrencyMismatch() {
+        Customer customer = new Customer();
+        customer.setUUID("customer-uuid");
+
+        Account source = new Account();
+        source.setUUID("source-account");
+        source.setBalance(new BigDecimal("100.00"));
+        source.setCurrency(Currency.EUR);
+        source.setCustomer(customer);
+
+        Account target = new Account();
+        target.setUUID("target-account");
+        target.setBalance(new BigDecimal("50.00"));
+        target.setCurrency(Currency.USD);
+        target.setCustomer(customer);
+
+        authenticateAs(customer);
+
+        when(accountRepository.findByUUID("source-account")).thenReturn(source);
+        when(accountRepository.findByUUID("target-account")).thenReturn(target);
+
+        TransferRequest request = TransferRequest.builder()
+                .targetAccountUUID("target-account")
+                .amount(new BigDecimal("30.00"))
+                .build();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> transactionService.transferBetweenAccounts("source-account", request));
+
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void transferRejectsCrossCustomerTarget() {
+        Customer owner = new Customer();
+        owner.setUUID("customer-uuid");
+
+        Customer other = new Customer();
+        other.setUUID("other-customer-uuid");
+
+        Account source = new Account();
+        source.setUUID("source-account");
+        source.setBalance(new BigDecimal("100.00"));
+        source.setCurrency(Currency.EUR);
+        source.setCustomer(owner);
+
+        Account target = new Account();
+        target.setUUID("target-account");
+        target.setBalance(new BigDecimal("50.00"));
+        target.setCurrency(Currency.EUR);
+        target.setCustomer(other);
+
+        authenticateAs(owner);
+
+        when(accountRepository.findByUUID("source-account")).thenReturn(source);
+        when(accountRepository.findByUUID("target-account")).thenReturn(target);
+
+        TransferRequest request = TransferRequest.builder()
+                .targetAccountUUID("target-account")
+                .amount(new BigDecimal("30.00"))
+                .build();
+
+        assertThrows(AccessDeniedException.class,
+                () -> transactionService.transferBetweenAccounts("source-account", request));
 
         verify(transactionRepository, never()).save(any());
     }
