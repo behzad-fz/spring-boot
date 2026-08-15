@@ -1,13 +1,17 @@
 package com.bank.modules.transaction.service;
 
 import com.bank.exception.InsufficientFundsException;
+import com.bank.exception.RecipientNotFoundException;
 import com.bank.modules.account.entity.Account;
 import com.bank.modules.account.repository.AccountRepository;
+import com.bank.modules.transaction.entity.Recipient;
 import com.bank.modules.transaction.entity.Transaction;
 import com.bank.modules.transaction.enums.TransactionStatus;
 import com.bank.modules.transaction.enums.TransactionType;
+import com.bank.modules.transaction.repository.RecipientRepository;
 import com.bank.modules.transaction.repository.TransactionRepository;
 import com.bank.modules.transaction.request.NewTransaction;
+import com.bank.modules.transaction.request.RecipientPaymentRequest;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -20,10 +24,13 @@ public class TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
+    private final RecipientRepository recipientRepository;
 
-    public TransactionService(TransactionRepository transactionRepository, AccountRepository accountRepository) {
+    public TransactionService(TransactionRepository transactionRepository, AccountRepository accountRepository,
+                              RecipientRepository recipientRepository) {
         this.transactionRepository = transactionRepository;
         this.accountRepository = accountRepository;
+        this.recipientRepository = recipientRepository;
     }
 
     @Transactional
@@ -57,6 +64,28 @@ public class TransactionService {
         persistedTransaction.setStatus(TransactionStatus.COMPLETED);
         persistedTransaction.setCompletedAt(LocalDateTime.now());
         return transactionRepository.save(persistedTransaction);
+    }
+
+    @Transactional
+    public Transaction payToRecipient(String accountUUID, RecipientPaymentRequest request) {
+        Account account = accountRepository.findByUUID(accountUUID);
+        Recipient recipient = recipientRepository.findByIban(request.getRecipientIban());
+
+        if (recipient == null || !isRecipientOwnedByCustomer(recipient, account)) {
+            throw new RecipientNotFoundException("Recipient not found or not owned by this customer");
+        }
+
+        return createTransaction(NewTransaction.builder()
+                .amount(request.getAmount())
+                .transactionType("PAYMENT")
+                .description(request.getDescription())
+                .build(), accountUUID);
+    }
+
+    private boolean isRecipientOwnedByCustomer(Recipient recipient, Account account) {
+        return account.getCustomer() != null
+                && recipient.getCustomer() != null
+                && recipient.getCustomer().getUUID().equals(account.getCustomer().getUUID());
     }
 
     private BigDecimal signedAmount(TransactionType type, BigDecimal amount) {

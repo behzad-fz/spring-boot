@@ -1,13 +1,18 @@
 package com.bank.modules.transaction.service;
 
 import com.bank.exception.InsufficientFundsException;
+import com.bank.exception.RecipientNotFoundException;
 import com.bank.modules.account.entity.Account;
 import com.bank.modules.account.repository.AccountRepository;
+import com.bank.modules.customer.entity.Customer;
+import com.bank.modules.transaction.entity.Recipient;
 import com.bank.modules.transaction.entity.Transaction;
 import com.bank.modules.transaction.enums.TransactionStatus;
 import com.bank.modules.transaction.enums.TransactionType;
+import com.bank.modules.transaction.repository.RecipientRepository;
 import com.bank.modules.transaction.repository.TransactionRepository;
 import com.bank.modules.transaction.request.NewTransaction;
+import com.bank.modules.transaction.request.RecipientPaymentRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,6 +34,9 @@ class TransactionServiceTest {
 
     @Mock
     private AccountRepository accountRepository;
+
+    @Mock
+    private RecipientRepository recipientRepository;
 
     @InjectMocks
     private TransactionService transactionService;
@@ -131,6 +139,92 @@ class TransactionServiceTest {
         );
 
         assertEquals("Insufficient funds for this transaction", ex.getMessage());
+        assertEquals(0, new BigDecimal("100.00").compareTo(account.getBalance()));
+        verify(transactionRepository, never()).save(any());
+        verify(accountRepository, never()).save(any());
+    }
+
+    @Test
+    void paymentToOwnedRecipientDebitsBalance() {
+        Customer customer = new Customer();
+        customer.setUUID("customer-uuid");
+
+        account.setCustomer(customer);
+
+        Recipient recipient = Recipient.builder()
+                .id(1L)
+                .iban("NL91ABNA0417164300")
+                .fullName("Jane Doe")
+                .customer(customer)
+                .build();
+
+        RecipientPaymentRequest request = RecipientPaymentRequest.builder()
+                .recipientIban("NL91ABNA0417164300")
+                .amount(new BigDecimal("30.00"))
+                .description("rent")
+                .build();
+
+        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+        when(recipientRepository.findByIban("NL91ABNA0417164300")).thenReturn(recipient);
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Transaction result = transactionService.payToRecipient("account-uuid", request);
+
+        assertEquals(0, new BigDecimal("70.00").compareTo(account.getBalance()));
+        assertEquals(TransactionType.PAYMENT, result.getTransactionType());
+        assertEquals(TransactionStatus.COMPLETED, result.getStatus());
+        verify(recipientRepository).findByIban("NL91ABNA0417164300");
+    }
+
+    @Test
+    void paymentToRecipientOwnedByAnotherCustomerIsRejected() {
+        Customer accountOwner = new Customer();
+        accountOwner.setUUID("customer-uuid");
+
+        Customer otherCustomer = new Customer();
+        otherCustomer.setUUID("other-customer-uuid");
+
+        account.setCustomer(accountOwner);
+
+        Recipient recipient = Recipient.builder()
+                .id(1L)
+                .iban("NL91ABNA0417164300")
+                .fullName("Jane Doe")
+                .customer(otherCustomer)
+                .build();
+
+        RecipientPaymentRequest request = RecipientPaymentRequest.builder()
+                .recipientIban("NL91ABNA0417164300")
+                .amount(new BigDecimal("30.00"))
+                .build();
+
+        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+        when(recipientRepository.findByIban("NL91ABNA0417164300")).thenReturn(recipient);
+
+        assertThrows(RecipientNotFoundException.class,
+                () -> transactionService.payToRecipient("account-uuid", request));
+
+        assertEquals(0, new BigDecimal("100.00").compareTo(account.getBalance()));
+        verify(transactionRepository, never()).save(any());
+        verify(accountRepository, never()).save(any());
+    }
+
+    @Test
+    void paymentToUnknownRecipientIsRejected() {
+        account.setCustomer(new Customer());
+
+        RecipientPaymentRequest request = RecipientPaymentRequest.builder()
+                .recipientIban("NL91ABNA0417164300")
+                .amount(new BigDecimal("30.00"))
+                .build();
+
+        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+        when(recipientRepository.findByIban("NL91ABNA0417164300")).thenReturn(null);
+
+        assertThrows(RecipientNotFoundException.class,
+                () -> transactionService.payToRecipient("account-uuid", request));
+
         assertEquals(0, new BigDecimal("100.00").compareTo(account.getBalance()));
         verify(transactionRepository, never()).save(any());
         verify(accountRepository, never()).save(any());
