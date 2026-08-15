@@ -2,6 +2,7 @@ package com.bank.modules.transaction.service;
 
 import com.bank.exception.InsufficientFundsException;
 import com.bank.exception.RecipientNotFoundException;
+import com.bank.exception.ResourceNotFoundException;
 import com.bank.modules.account.entity.Account;
 import com.bank.modules.account.repository.AccountRepository;
 import com.bank.modules.customer.entity.Customer;
@@ -42,9 +43,7 @@ public class TransactionService {
         TransactionType type = TransactionType.valueOf(newTransaction.getTransactionType());
         BigDecimal amount = newTransaction.getAmount();
 
-        Account account = accountRepository.findByUUID(accountUUID);
-
-        requireOwnership(account);
+        Account account = requireAccount(accountUUID);
 
         BigDecimal signedAmount = signedAmount(type, amount);
         BigDecimal newBalance = account.getBalance().add(signedAmount);
@@ -74,10 +73,8 @@ public class TransactionService {
 
     @Transactional
     public Transaction payToRecipient(String accountUUID, RecipientPaymentRequest request) {
-        Account account = accountRepository.findByUUID(accountUUID);
+        Account account = requireAccount(accountUUID);
         Recipient recipient = recipientRepository.findByIban(request.getRecipientIban());
-
-        requireOwnership(account);
 
         if (recipient == null || !isRecipientOwnedByCustomer(recipient, account)) {
             throw new RecipientNotFoundException("Recipient not found or not owned by this customer");
@@ -88,6 +85,18 @@ public class TransactionService {
                 .transactionType("PAYMENT")
                 .description(request.getDescription())
                 .build(), accountUUID);
+    }
+
+    private Account requireAccount(String accountUUID) {
+        Account account = accountRepository.findByUUID(accountUUID);
+
+        if (account == null) {
+            throw new ResourceNotFoundException("Account not found");
+        }
+
+        requireOwnership(account);
+
+        return account;
     }
 
     private void requireOwnership(Account account) {
