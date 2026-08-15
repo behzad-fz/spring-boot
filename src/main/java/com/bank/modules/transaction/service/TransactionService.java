@@ -4,6 +4,7 @@ import com.bank.exception.InsufficientFundsException;
 import com.bank.exception.RecipientNotFoundException;
 import com.bank.modules.account.entity.Account;
 import com.bank.modules.account.repository.AccountRepository;
+import com.bank.modules.customer.entity.Customer;
 import com.bank.modules.transaction.entity.Recipient;
 import com.bank.modules.transaction.entity.Transaction;
 import com.bank.modules.transaction.enums.TransactionStatus;
@@ -13,6 +14,9 @@ import com.bank.modules.transaction.repository.TransactionRepository;
 import com.bank.modules.transaction.request.NewTransaction;
 import com.bank.modules.transaction.request.RecipientPaymentRequest;
 import jakarta.transaction.Transactional;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -39,6 +43,8 @@ public class TransactionService {
         BigDecimal amount = newTransaction.getAmount();
 
         Account account = accountRepository.findByUUID(accountUUID);
+
+        requireOwnership(account);
 
         BigDecimal signedAmount = signedAmount(type, amount);
         BigDecimal newBalance = account.getBalance().add(signedAmount);
@@ -71,6 +77,8 @@ public class TransactionService {
         Account account = accountRepository.findByUUID(accountUUID);
         Recipient recipient = recipientRepository.findByIban(request.getRecipientIban());
 
+        requireOwnership(account);
+
         if (recipient == null || !isRecipientOwnedByCustomer(recipient, account)) {
             throw new RecipientNotFoundException("Recipient not found or not owned by this customer");
         }
@@ -80,6 +88,23 @@ public class TransactionService {
                 .transactionType("PAYMENT")
                 .description(request.getDescription())
                 .build(), accountUUID);
+    }
+
+    private void requireOwnership(Account account) {
+        Customer authenticatedCustomer = authenticatedCustomer();
+        if (authenticatedCustomer != null
+                && (account.getCustomer() == null
+                    || !account.getCustomer().getUUID().equals(authenticatedCustomer.getUUID()))) {
+            throw new AccessDeniedException("Account does not belong to the authenticated customer");
+        }
+    }
+
+    private Customer authenticatedCustomer() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof Customer customer) {
+            return customer;
+        }
+        return null;
     }
 
     private boolean isRecipientOwnedByCustomer(Recipient recipient, Account account) {
