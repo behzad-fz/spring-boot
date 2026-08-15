@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class TransactionService {
@@ -74,6 +75,13 @@ public class TransactionService {
     }
 
     @Transactional
+    public List<Transaction> getTransactions(String accountUUID) {
+        Account account = requireAccount(accountUUID);
+
+        return transactionRepository.findByAccountUUIDOrderByInitiatedAtDesc(account.getUUID());
+    }
+
+    @Transactional
     public Transaction payToRecipient(String accountUUID, RecipientPaymentRequest request) {
         Account account = requireAccount(accountUUID);
         Recipient recipient = recipientRepository.findByIban(request.getRecipientIban());
@@ -90,8 +98,7 @@ public class TransactionService {
     }
 
     @Transactional
-    public CurrencyConversionResult convertCurrency(String sourceAccountUUID, CurrencyConversionRequest request) {
-        Account source = requireAccount(sourceAccountUUID);
+    public CurrencyConversionResult convertCurrency(String sourceAccountUUID, CurrencyConversionRequest request) {        Account source = requireAccount(sourceAccountUUID);
         Account target = requireAccount(request.getTargetAccountUUID());
 
         if (source.getUUID().equals(target.getUUID())) {

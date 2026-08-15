@@ -30,6 +30,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -486,6 +487,52 @@ class TransactionServiceTest {
                 () -> transactionService.convertCurrency("source-account", request));
 
         verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void getTransactionsReturnsOrderedHistoryForOwnedAccount() {
+        Customer customer = new Customer();
+        customer.setUUID("customer-uuid");
+        account.setCustomer(customer);
+
+        authenticateAs(customer);
+
+        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+        when(transactionRepository.findByAccountUUIDOrderByInitiatedAtDesc("account-uuid"))
+                .thenReturn(List.of(new Transaction(), new Transaction()));
+
+        List<Transaction> result = transactionService.getTransactions("account-uuid");
+
+        assertEquals(2, result.size());
+        verify(transactionRepository).findByAccountUUIDOrderByInitiatedAtDesc("account-uuid");
+    }
+
+    @Test
+    void getTransactionsForUnknownAccountReturns404() {
+        when(accountRepository.findByUUID("unknown-account")).thenReturn(null);
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> transactionService.getTransactions("unknown-account"));
+
+        verify(transactionRepository, never()).findByAccountUUIDOrderByInitiatedAtDesc(anyString());
+    }
+
+    @Test
+    void getTransactionsForAnotherCustomersAccountIsRejected() {
+        Customer owner = new Customer();
+        owner.setUUID("customer-uuid");
+        account.setCustomer(owner);
+
+        Customer other = new Customer();
+        other.setUUID("other-customer-uuid");
+        authenticateAs(other);
+
+        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+
+        assertThrows(AccessDeniedException.class,
+                () -> transactionService.getTransactions("account-uuid"));
+
+        verify(transactionRepository, never()).findByAccountUUIDOrderByInitiatedAtDesc(anyString());
     }
 
     private void authenticateAs(Customer customer) {
