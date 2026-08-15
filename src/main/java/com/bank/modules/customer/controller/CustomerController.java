@@ -1,6 +1,7 @@
 package com.bank.modules.customer.controller;
 
 import com.bank.modules.customer.entity.Customer;
+import com.bank.modules.customer.entity.CustomerCreationResponse;
 import com.bank.modules.customer.request.CustomerRequest;
 import com.bank.modules.customer.service.CustomerService;
 import jakarta.validation.Valid;
@@ -42,7 +43,7 @@ public class CustomerController {
 
     @PreAuthorize("hasAuthority('USER')")
     @PostMapping
-    public ResponseEntity<Customer> saveCustomer(@Valid @RequestBody CustomerRequest request) {
+    public ResponseEntity<CustomerCreationResponse> saveCustomer(@Valid @RequestBody CustomerRequest request) {
         var customer = customerService.save(request);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(customer);
