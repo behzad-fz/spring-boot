@@ -7,14 +7,17 @@ import com.bank.modules.account.entity.Account;
 import com.bank.modules.account.repository.AccountRepository;
 import com.bank.modules.customer.entity.Customer;
 import com.bank.modules.customer.entity.CustomerRole;
+import com.bank.modules.transaction.entity.CurrencyConversionResult;
 import com.bank.modules.transaction.entity.Recipient;
 import com.bank.modules.transaction.entity.Transaction;
 import com.bank.modules.transaction.enums.TransactionStatus;
 import com.bank.modules.transaction.enums.TransactionType;
 import com.bank.modules.transaction.repository.RecipientRepository;
 import com.bank.modules.transaction.repository.TransactionRepository;
+import com.bank.modules.transaction.request.CurrencyConversionRequest;
 import com.bank.modules.transaction.request.NewTransaction;
 import com.bank.modules.transaction.request.RecipientPaymentRequest;
+import com.bank.enums.Currency;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -343,6 +346,146 @@ class TransactionServiceTest {
 
         verify(transactionRepository, never()).save(any());
         verify(recipientRepository, never()).findByIban(anyString());
+    }
+
+    @Test
+    void currencyConversionDebitsSourceAndCreditsTarget() {
+        Customer customer = new Customer();
+        customer.setUUID("customer-uuid");
+
+        Account source = new Account();
+        source.setUUID("source-account");
+        source.setBalance(new BigDecimal("100.00"));
+        source.setCurrency(Currency.EUR);
+        source.setCustomer(customer);
+
+        Account target = new Account();
+        target.setUUID("target-account");
+        target.setBalance(new BigDecimal("50.00"));
+        target.setCurrency(Currency.USD);
+        target.setCustomer(customer);
+
+        authenticateAs(customer);
+
+        when(accountRepository.findByUUID("source-account")).thenReturn(source);
+        when(accountRepository.findByUUID("target-account")).thenReturn(target);
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CurrencyConversionRequest request = CurrencyConversionRequest.builder()
+                .targetAccountUUID("target-account")
+                .amount(new BigDecimal("20.00"))
+                .exchangeRate(new BigDecimal("1.10"))
+                .build();
+
+        CurrencyConversionResult result = transactionService.convertCurrency("source-account", request);
+
+        assertEquals(0, new BigDecimal("80.00").compareTo(source.getBalance()), "source debited by amount");
+        assertEquals(0, new BigDecimal("72.00").compareTo(target.getBalance()), "target credited by amount * rate");
+        assertEquals(TransactionType.CURRENCY_CONVERSION, result.sourceLeg().getTransactionType());
+        assertEquals(TransactionType.CURRENCY_CONVERSION, result.targetLeg().getTransactionType());
+        assertEquals(TransactionStatus.COMPLETED, result.sourceLeg().getStatus());
+        verify(accountRepository, times(2)).save(any(Account.class));
+    }
+
+    @Test
+    void currencyConversionRejectsInsufficientFunds() {
+        Customer customer = new Customer();
+        customer.setUUID("customer-uuid");
+
+        Account source = new Account();
+        source.setUUID("source-account");
+        source.setBalance(new BigDecimal("10.00"));
+        source.setCurrency(Currency.EUR);
+        source.setCustomer(customer);
+
+        Account target = new Account();
+        target.setUUID("target-account");
+        target.setBalance(new BigDecimal("50.00"));
+        target.setCurrency(Currency.USD);
+        target.setCustomer(customer);
+
+        authenticateAs(customer);
+
+        when(accountRepository.findByUUID("source-account")).thenReturn(source);
+        when(accountRepository.findByUUID("target-account")).thenReturn(target);
+
+        CurrencyConversionRequest request = CurrencyConversionRequest.builder()
+                .targetAccountUUID("target-account")
+                .amount(new BigDecimal("20.00"))
+                .exchangeRate(new BigDecimal("1.10"))
+                .build();
+
+        assertThrows(InsufficientFundsException.class,
+                () -> transactionService.convertCurrency("source-account", request));
+
+        assertEquals(0, new BigDecimal("10.00").compareTo(source.getBalance()));
+        assertEquals(0, new BigDecimal("50.00").compareTo(target.getBalance()));
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void currencyConversionRejectsSameAccount() {
+        Customer customer = new Customer();
+        customer.setUUID("customer-uuid");
+
+        Account account = new Account();
+        account.setUUID("source-account");
+        account.setBalance(new BigDecimal("100.00"));
+        account.setCurrency(Currency.EUR);
+        account.setCustomer(customer);
+
+        authenticateAs(customer);
+
+        when(accountRepository.findByUUID("source-account")).thenReturn(account);
+
+        CurrencyConversionRequest request = CurrencyConversionRequest.builder()
+                .targetAccountUUID("source-account")
+                .amount(new BigDecimal("20.00"))
+                .exchangeRate(new BigDecimal("1.10"))
+                .build();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> transactionService.convertCurrency("source-account", request));
+
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void currencyConversionRejectsCrossCustomerTarget() {
+        Customer owner = new Customer();
+        owner.setUUID("customer-uuid");
+
+        Customer other = new Customer();
+        other.setUUID("other-customer-uuid");
+
+        Account source = new Account();
+        source.setUUID("source-account");
+        source.setBalance(new BigDecimal("100.00"));
+        source.setCurrency(Currency.EUR);
+        source.setCustomer(owner);
+
+        Account target = new Account();
+        target.setUUID("target-account");
+        target.setBalance(new BigDecimal("50.00"));
+        target.setCurrency(Currency.USD);
+        target.setCustomer(other);
+
+        authenticateAs(owner);
+
+        when(accountRepository.findByUUID("source-account")).thenReturn(source);
+        when(accountRepository.findByUUID("target-account")).thenReturn(target);
+
+        CurrencyConversionRequest request = CurrencyConversionRequest.builder()
+                .targetAccountUUID("target-account")
+                .amount(new BigDecimal("20.00"))
+                .exchangeRate(new BigDecimal("1.10"))
+                .build();
+
+        assertThrows(AccessDeniedException.class,
+                () -> transactionService.convertCurrency("source-account", request));
+
+        verify(transactionRepository, never()).save(any());
     }
 
     private void authenticateAs(Customer customer) {

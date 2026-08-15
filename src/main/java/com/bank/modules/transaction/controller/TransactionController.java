@@ -1,6 +1,8 @@
 package com.bank.modules.transaction.controller;
 
+import com.bank.modules.transaction.entity.CurrencyConversionResult;
 import com.bank.modules.transaction.entity.Transaction;
+import com.bank.modules.transaction.request.CurrencyConversionRequest;
 import com.bank.modules.transaction.request.NewTransaction;
 import com.bank.modules.transaction.request.RecipientPaymentRequest;
 import com.bank.modules.transaction.service.TransactionService;
@@ -36,5 +38,15 @@ public class TransactionController {
         Transaction transaction = transactionService.payToRecipient(accountUUID, request);
 
         return ResponseEntity.ok(transaction);
+    }
+
+    @PostMapping("/currency-conversion")
+    private ResponseEntity<CurrencyConversionResult> convertCurrency(
+        @Valid @RequestBody CurrencyConversionRequest request,
+        @PathVariable String accountUUID
+    ) {
+        CurrencyConversionResult result = transactionService.convertCurrency(accountUUID, request);
+
+        return ResponseEntity.ok(result);
     }
 }
