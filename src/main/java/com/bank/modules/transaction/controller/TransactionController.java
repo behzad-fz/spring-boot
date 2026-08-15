@@ -2,6 +2,7 @@ package com.bank.modules.transaction.controller;
 
 import com.bank.modules.transaction.entity.Transaction;
 import com.bank.modules.transaction.request.NewTransaction;
+import com.bank.modules.transaction.request.RecipientPaymentRequest;
 import com.bank.modules.transaction.service.TransactionService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +24,16 @@ public class TransactionController {
         @PathVariable String accountUUID
     ) {
         Transaction transaction = transactionService.createTransaction(newTransaction, accountUUID);
+
+        return ResponseEntity.ok(transaction);
+    }
+
+    @PostMapping("/recipient-payment")
+    private ResponseEntity<Transaction> payToRecipient(
+        @Valid @RequestBody RecipientPaymentRequest request,
+        @PathVariable String accountUUID
+    ) {
+        Transaction transaction = transactionService.payToRecipient(accountUUID, request);
 
         return ResponseEntity.ok(transaction);
     }
