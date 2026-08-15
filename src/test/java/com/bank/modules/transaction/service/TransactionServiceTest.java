@@ -5,6 +5,7 @@ import com.bank.exception.RecipientNotFoundException;
 import com.bank.modules.account.entity.Account;
 import com.bank.modules.account.repository.AccountRepository;
 import com.bank.modules.customer.entity.Customer;
+import com.bank.modules.customer.entity.CustomerRole;
 import com.bank.modules.transaction.entity.Recipient;
 import com.bank.modules.transaction.entity.Transaction;
 import com.bank.modules.transaction.enums.TransactionStatus;
@@ -13,12 +14,16 @@ import com.bank.modules.transaction.repository.RecipientRepository;
 import com.bank.modules.transaction.repository.TransactionRepository;
 import com.bank.modules.transaction.request.NewTransaction;
 import com.bank.modules.transaction.request.RecipientPaymentRequest;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 
@@ -49,6 +54,11 @@ class TransactionServiceTest {
         account.setId(1L);
         account.setUUID("account-uuid");
         account.setBalance(new BigDecimal("100.00"));
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -228,5 +238,85 @@ class TransactionServiceTest {
         assertEquals(0, new BigDecimal("100.00").compareTo(account.getBalance()));
         verify(transactionRepository, never()).save(any());
         verify(accountRepository, never()).save(any());
+    }
+
+    @Test
+    void authenticatedCustomerCanTransactOnOwnAccount() {
+        Customer customer = new Customer();
+        customer.setUUID("customer-uuid");
+        account.setCustomer(customer);
+        authenticateAs(customer);
+
+        NewTransaction request = NewTransaction.builder()
+                .amount(new BigDecimal("25.50"))
+                .transactionType("DEPOSIT")
+                .build();
+
+        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Transaction result = transactionService.createTransaction(request, "account-uuid");
+
+        assertEquals(0, new BigDecimal("125.50").compareTo(account.getBalance()));
+        assertEquals(TransactionType.DEPOSIT, result.getTransactionType());
+    }
+
+    @Test
+    void authenticatedCustomerCannotTransactOnAnotherCustomersAccount() {
+        Customer owner = new Customer();
+        owner.setUUID("customer-uuid");
+        account.setCustomer(owner);
+
+        Customer other = new Customer();
+        other.setUUID("other-customer-uuid");
+        authenticateAs(other);
+
+        NewTransaction request = NewTransaction.builder()
+                .amount(new BigDecimal("25.50"))
+                .transactionType("DEPOSIT")
+                .build();
+
+        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+
+        assertThrows(AccessDeniedException.class,
+                () -> transactionService.createTransaction(request, "account-uuid"));
+
+        assertEquals(0, new BigDecimal("100.00").compareTo(account.getBalance()));
+        verify(transactionRepository, never()).save(any());
+        verify(accountRepository, never()).save(any());
+    }
+
+    @Test
+    void authenticatedCustomerCannotPayToAnotherCustomersAccount() {
+        Customer owner = new Customer();
+        owner.setUUID("customer-uuid");
+        account.setCustomer(owner);
+
+        Customer other = new Customer();
+        other.setUUID("other-customer-uuid");
+        authenticateAs(other);
+
+        RecipientPaymentRequest request = RecipientPaymentRequest.builder()
+                .recipientIban("NL91ABNA0417164300")
+                .amount(new BigDecimal("30.00"))
+                .build();
+
+        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+
+        assertThrows(AccessDeniedException.class,
+                () -> transactionService.payToRecipient("account-uuid", request));
+
+        assertEquals(0, new BigDecimal("100.00").compareTo(account.getBalance()));
+        verify(transactionRepository, never()).save(any());
+        verify(accountRepository, never()).save(any());
+    }
+
+    private void authenticateAs(Customer customer) {
+        if (customer.getRole() == null) {
+            customer.setRole(CustomerRole.ORDINARY_CUSTOMER);
+        }
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(customer, null, customer.getAuthorities()));
     }
 }
