@@ -6,12 +6,14 @@ import com.bank.exception.ResourceNotFoundException;
 import com.bank.modules.account.entity.Account;
 import com.bank.modules.account.repository.AccountRepository;
 import com.bank.modules.customer.entity.Customer;
+import com.bank.modules.transaction.entity.CurrencyConversionResult;
 import com.bank.modules.transaction.entity.Recipient;
 import com.bank.modules.transaction.entity.Transaction;
 import com.bank.modules.transaction.enums.TransactionStatus;
 import com.bank.modules.transaction.enums.TransactionType;
 import com.bank.modules.transaction.repository.RecipientRepository;
 import com.bank.modules.transaction.repository.TransactionRepository;
+import com.bank.modules.transaction.request.CurrencyConversionRequest;
 import com.bank.modules.transaction.request.NewTransaction;
 import com.bank.modules.transaction.request.RecipientPaymentRequest;
 import jakarta.transaction.Transactional;
@@ -85,6 +87,49 @@ public class TransactionService {
                 .transactionType("PAYMENT")
                 .description(request.getDescription())
                 .build(), accountUUID);
+    }
+
+    @Transactional
+    public CurrencyConversionResult convertCurrency(String sourceAccountUUID, CurrencyConversionRequest request) {
+        Account source = requireAccount(sourceAccountUUID);
+        Account target = requireAccount(request.getTargetAccountUUID());
+
+        if (source.getUUID().equals(target.getUUID())) {
+            throw new IllegalArgumentException("Source and target accounts must be different");
+        }
+
+        BigDecimal targetAmount = request.getAmount().multiply(request.getExchangeRate());
+
+        Transaction sourceLeg = persistLeg(source, request.getAmount().negate(),
+                "Currency conversion", source.getBalance().subtract(request.getAmount()));
+        Transaction targetLeg = persistLeg(target, targetAmount,
+                "Currency conversion", target.getBalance().add(targetAmount));
+
+        return new CurrencyConversionResult(sourceLeg, targetLeg);
+    }
+
+    private Transaction persistLeg(Account account, BigDecimal signedAmount, String description, BigDecimal newBalance) {
+        if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
+            throw new InsufficientFundsException("Insufficient funds for this transaction");
+        }
+
+        Transaction transaction = Transaction.builder()
+                .amount(signedAmount.abs())
+                .transactionType(TransactionType.CURRENCY_CONVERSION)
+                .description(description)
+                .build();
+
+        transaction.setAccount(account);
+
+        Transaction persistedTransaction = transactionRepository.save(transaction);
+
+        account.setBalance(newBalance);
+        account.setLastTransaction(LocalDate.now());
+        accountRepository.save(account);
+
+        persistedTransaction.setStatus(TransactionStatus.COMPLETED);
+        persistedTransaction.setCompletedAt(LocalDateTime.now());
+        return transactionRepository.save(persistedTransaction);
     }
 
     private Account requireAccount(String accountUUID) {
