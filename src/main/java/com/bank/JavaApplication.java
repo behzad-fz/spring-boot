@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @EnableConfigurationProperties(RsaKeyProperties.class)
 @EnableTransactionManagement
+@EnableScheduling
 public class JavaApplication {
 
 	@RequestMapping("/")
