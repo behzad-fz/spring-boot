@@ -32,8 +32,7 @@ public class AccountService {
     public Account save(NewAccountRequest request, String customerUUID) {
         var account = Account.builder()
                 .type(request.getType())
-                // TODO: should get from request
-                .currency(Currency.GBP)
+                .currency(Currency.valueOf(request.getCurrency()))
                 .build();
 
         Customer customer = customerRepository.findByUUID(customerUUID);
