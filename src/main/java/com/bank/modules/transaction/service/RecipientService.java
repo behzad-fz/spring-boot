@@ -1,5 +1,6 @@
 package com.bank.modules.transaction.service;
 
+import com.bank.exception.ResourceNotFoundException;
 import com.bank.modules.customer.entity.Customer;
 import com.bank.modules.customer.repository.CustomerRepository;
 import com.bank.modules.transaction.entity.Recipient;
@@ -21,7 +22,7 @@ public class RecipientService {
     }
 
     public List<Recipient> getAll(String customerUUID) {
-        Customer customer = customerRepository.findByUUID(customerUUID);
+        Customer customer = requireCustomer(customerUUID);
 
         return customer.getRecipients();
     }
@@ -34,7 +35,7 @@ public class RecipientService {
                 .bankName(newRecipient.getBankName())
                 .build();
 
-        Customer customer = customerRepository.findByUUID(customerUUID);
+        Customer customer = requireCustomer(customerUUID);
 
         recipient.setCustomer(customer);
 
@@ -53,5 +54,15 @@ public class RecipientService {
 
     public void delete(Long id) {
         recipientRepository.deleteById(id);
+    }
+
+    private Customer requireCustomer(String customerUUID) {
+        Customer customer = customerRepository.findByUUID(customerUUID);
+
+        if (customer == null) {
+            throw new ResourceNotFoundException("Customer not found");
+        }
+
+        return customer;
     }
 }

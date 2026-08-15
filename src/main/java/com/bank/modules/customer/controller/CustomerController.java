@@ -54,24 +54,14 @@ public class CustomerController {
             @Valid @RequestBody CustomerRequest request,
             @PathVariable String customerUUID
     ) {
-        Customer customer;
-        
-        try {
-            customer = customerService.update(request, customerUUID);
-        } catch (Exception exception) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
+        Customer customer = customerService.update(request, customerUUID);
 
         return ResponseEntity.ok(customer);
     }
 
     @DeleteMapping("{customerUUID}")
     public ResponseEntity<Void> delete(@PathVariable String customerUUID) {
-        try {
-            customerService.delete(customerUUID);
-        } catch (Exception exception) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
+        customerService.delete(customerUUID);
 
         return ResponseEntity.noContent().build();
     }

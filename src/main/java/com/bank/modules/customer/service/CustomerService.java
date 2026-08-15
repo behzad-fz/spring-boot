@@ -1,5 +1,6 @@
 package com.bank.modules.customer.service;
 
+import com.bank.exception.ResourceNotFoundException;
 import com.bank.modules.customer.entity.Customer;
 import com.bank.modules.customer.entity.CustomerCreationResponse;
 import com.bank.modules.customer.entity.CustomerRole;
@@ -63,12 +64,8 @@ public class CustomerService {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
-    public Customer update(CustomerRequest customerRequest, String uuid) throws Exception {
-        Customer customer = customerRepository.findByUUID(uuid);
-
-        if (customer == null) {
-            throw new Exception("Customer not found");
-        }
+    public Customer update(CustomerRequest customerRequest, String uuid) {
+        Customer customer = requireCustomer(uuid);
 
         customer.setFirstName(customerRequest.getFirstName());
         customer.setLastName(customerRequest.getLastName());
@@ -79,13 +76,19 @@ public class CustomerService {
         return customerRepository.save(customer);
     }
 
-    public void delete(String uuid) throws Exception {
+    public void delete(String uuid) {
+        Customer customer = requireCustomer(uuid);
+
+        customerRepository.delete(customer);
+    }
+
+    private Customer requireCustomer(String uuid) {
         Customer customer = customerRepository.findByUUID(uuid);
 
         if (customer == null) {
-            throw new Exception("Customer not fount");
+            throw new ResourceNotFoundException("Customer not found");
         }
 
-        customerRepository.delete(customer);
+        return customer;
     }
 }

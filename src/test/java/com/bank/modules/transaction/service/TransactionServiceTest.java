@@ -2,6 +2,7 @@ package com.bank.modules.transaction.service;
 
 import com.bank.exception.InsufficientFundsException;
 import com.bank.exception.RecipientNotFoundException;
+import com.bank.exception.ResourceNotFoundException;
 import com.bank.modules.account.entity.Account;
 import com.bank.modules.account.repository.AccountRepository;
 import com.bank.modules.customer.entity.Customer;
@@ -310,6 +311,38 @@ class TransactionServiceTest {
         assertEquals(0, new BigDecimal("100.00").compareTo(account.getBalance()));
         verify(transactionRepository, never()).save(any());
         verify(accountRepository, never()).save(any());
+    }
+
+    @Test
+    void createTransactionOnUnknownAccountReturns404() {
+        when(accountRepository.findByUUID("unknown-account")).thenReturn(null);
+
+        NewTransaction request = NewTransaction.builder()
+                .amount(new BigDecimal("25.50"))
+                .transactionType("DEPOSIT")
+                .build();
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> transactionService.createTransaction(request, "unknown-account"));
+
+        verify(transactionRepository, never()).save(any());
+        verify(accountRepository, never()).save(any());
+    }
+
+    @Test
+    void payToRecipientOnUnknownAccountReturns404() {
+        when(accountRepository.findByUUID("unknown-account")).thenReturn(null);
+
+        RecipientPaymentRequest request = RecipientPaymentRequest.builder()
+                .recipientIban("NL91ABNA0417164300")
+                .amount(new BigDecimal("30.00"))
+                .build();
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> transactionService.payToRecipient("unknown-account", request));
+
+        verify(transactionRepository, never()).save(any());
+        verify(recipientRepository, never()).findByIban(anyString());
     }
 
     private void authenticateAs(Customer customer) {

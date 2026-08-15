@@ -1,6 +1,7 @@
 package com.bank.modules.account.service;
 
 import com.bank.enums.Currency;
+import com.bank.exception.ResourceNotFoundException;
 import com.bank.modules.account.entity.Account;
 import com.bank.modules.account.enums.AccountStatus;
 import com.bank.modules.account.repository.AccountRepository;
@@ -24,7 +25,7 @@ public class AccountService {
     }
 
     public List<Account> getAll(String customerUUID) {
-        Customer customer =  customerRepository.findByUUID(customerUUID);
+        Customer customer = requireCustomer(customerUUID);
 
         return accountRepository.findByCustomerId(customer.getId());
     }
@@ -35,7 +36,7 @@ public class AccountService {
                 .currency(Currency.valueOf(request.getCurrency()))
                 .build();
 
-        Customer customer = customerRepository.findByUUID(customerUUID);
+        Customer customer = requireCustomer(customerUUID);
         account.setCustomer(customer);
 
         return accountRepository.save(account);
@@ -43,8 +44,23 @@ public class AccountService {
 
     public Account updateStatus(UpdateAccountStatusRequest request, String accountUUID) {
         Account account = accountRepository.findByUUID(accountUUID);
+
+        if (account == null) {
+            throw new ResourceNotFoundException("Account not found");
+        }
+
         account.setStatus(request.getStatus());
 
         return accountRepository.save(account);
+    }
+
+    private Customer requireCustomer(String customerUUID) {
+        Customer customer = customerRepository.findByUUID(customerUUID);
+
+        if (customer == null) {
+            throw new ResourceNotFoundException("Customer not found");
+        }
+
+        return customer;
     }
 }

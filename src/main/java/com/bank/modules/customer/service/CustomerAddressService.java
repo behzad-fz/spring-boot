@@ -1,5 +1,6 @@
 package com.bank.modules.customer.service;
 
+import com.bank.exception.ResourceNotFoundException;
 import com.bank.modules.customer.entity.Customer;
 import com.bank.modules.customer.entity.CustomerAddress;
 import com.bank.modules.customer.repository.CustomerAddressRepository;
@@ -22,7 +23,7 @@ public class CustomerAddressService {
     }
 
     public List<CustomerAddress> getAll(String customerUUID) {
-        Customer customer =  customerRepository.findByUUID(customerUUID);
+        Customer customer = requireCustomer(customerUUID);
 
         return addressRepository.findByCustomerId(customer.getId());
     }
@@ -37,9 +38,19 @@ public class CustomerAddressService {
                 .build();
 
 
-        Customer customer = customerRepository.findByUUID(customerUUID);
+        Customer customer = requireCustomer(customerUUID);
         address.setCustomer(customer);
 
         return addressRepository.save(address);
+    }
+
+    private Customer requireCustomer(String customerUUID) {
+        Customer customer = customerRepository.findByUUID(customerUUID);
+
+        if (customer == null) {
+            throw new ResourceNotFoundException("Customer not found");
+        }
+
+        return customer;
     }
 }
