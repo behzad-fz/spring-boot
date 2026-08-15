@@ -10,6 +10,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("api/v1/accounts/{accountUUID}/transactions")
 public class TransactionController {
@@ -18,6 +20,13 @@ public class TransactionController {
 
     public TransactionController(TransactionService transactionService) {
         this.transactionService = transactionService;
+    }
+
+    @GetMapping
+    private ResponseEntity<List<Transaction>> getTransactions(@PathVariable String accountUUID) {
+        List<Transaction> transactions = transactionService.getTransactions(accountUUID);
+
+        return ResponseEntity.ok(transactions);
     }
 
     @PostMapping
