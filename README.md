@@ -141,9 +141,26 @@ curl -X POST http://localhost:9001/api/v1/accounts/{accountUUID}/transactions \
 ```
 
 Replace `{accountUUID}` with the UUID from step 2. `transactionType` is one of
-`DEPOSIT`, `WITHDRAWAL`, `PAYMENT`, `TRANSFER`, `CURRENCY_CONVERSION`. Amount must be
+`DEPOSIT`, `WITHDRAWAL`, `PAYMENT`, `TRANSFER`. Amount must be
 positive; withdrawals/payments/transfers are rejected with a `400` if funds are
 insufficient.
+
+**Currency conversion** is a two-leg operation via a dedicated endpoint — it debits
+the source account by `amount` and credits the target account by `amount × exchangeRate`:
+
+```bash
+curl -X POST http://localhost:9001/api/v1/accounts/{sourceAccountUUID}/transactions/currency-conversion \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "targetAccountUUID": "{targetAccountUUID}",
+    "amount": 100.00,
+    "exchangeRate": 1.10
+  }'
+```
+
+Both accounts must belong to the authenticated customer; the exchange rate is
+caller-provided.
 
 ## Known gotchas
 
