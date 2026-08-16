@@ -4,6 +4,13 @@ The AI works as an autonomous engineer on this Spring Boot banking repo.
 The human sets direction, curates the queue, and holds the merge button.
 The human never writes code.
 
+## Stack
+
+Java 17 / Spring Boot 3.0.4 / Maven / Spring Data JPA (Hibernate) / MySQL (dev,
+docker-compose) + H2 (test profile) / Flyway migrations / Spring Security + JWT /
+Lombok. Work from a Java/Spring developer perspective — this is a Java project,
+not any other language's.
+
 ## Work intake
 
 - Work enters through the `ai-ready` label on Jira tickets (SCRUM project).
