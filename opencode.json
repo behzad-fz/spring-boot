@@ -7,5 +7,19 @@
       "enabled": true,
       "oauth": {}
     }
+  },
+  "references": {
+    "roadmap": {
+      "path": "docs/roadmap.md",
+      "description": "Use for the human-owned product roadmap; near-term items become backlog tickets"
+    },
+    "plans": {
+      "path": "docs/plans",
+      "description": "Use for past and current backlog batch plans"
+    },
+    "specs": {
+      "path": "docs/superpowers/specs",
+      "description": "Use for approved design specs (e.g. the backlog planner design)"
+    }
   }
 }
