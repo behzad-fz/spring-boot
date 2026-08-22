@@ -68,6 +68,16 @@ AI:   closing comment linking the PR
 - [ ] Your review is: CI green + skim the diff + read the self-review comment.
       Don't full-review every PR; that's what the fresh-context reviewer subagent is for.
 
+## Part 4b — Backlog planning (keeping the queue full)
+
+- [ ] Maintain `docs/roadmap.md` — high-level direction only (you own it).
+- [ ] Run `/plan-backlog` for a planning pass: it scans codebase health, the roadmap,
+      board state, R&D notes, and team feedback, then stages candidate tickets with a
+      **`proposal`** label and writes a batch plan to `docs/plans/YYYY-MM-DD.md`.
+- [ ] Review the batch plan; endorse the items you want.
+- [ ] Run `/promote-batch` (optionally with ticket keys) to flip endorsed proposals to
+      **`ai-ready`** so the loop can pull them. It never touches non-proposal tickets.
+
 ## Part 5 — The ramp (how to earn trust before the stakes get real)
 
 - [ ] **Week 1: safe territory only.** Tickets limited to tests, refactors, bug fixes,
