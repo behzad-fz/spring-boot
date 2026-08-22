@@ -104,14 +104,15 @@ public class TransactionService {
                 .description(request.getDescription())
                 .build(), accountUUID);
     }
-
     @Transactional
-    public CurrencyConversionResult convertCurrency(String sourceAccountUUID, CurrencyConversionRequest request) {        Account source = requireAccount(sourceAccountUUID);
-        Account target = requireAccount(request.getTargetAccountUUID());
-
-        if (source.getUUID().equals(target.getUUID())) {
+    public CurrencyConversionResult convertCurrency(String sourceAccountUUID, CurrencyConversionRequest request) {
+        if (sourceAccountUUID.equals(request.getTargetAccountUUID())) {
             throw new IllegalArgumentException("Source and target accounts must be different");
         }
+
+        Account[] pair = requireAccountsLockedInDeterministicOrder(sourceAccountUUID, request.getTargetAccountUUID());
+        Account source = pair[0];
+        Account target = pair[1];
 
         BigDecimal targetAmount = request.getAmount().multiply(request.getExchangeRate());
 
@@ -167,12 +168,13 @@ public class TransactionService {
 
     @Transactional
     public TransferResult transferBetweenAccounts(String sourceAccountUUID, TransferRequest request) {
-        Account source = requireAccount(sourceAccountUUID);
-        Account target = requireAccount(request.getTargetAccountUUID());
-
-        if (source.getUUID().equals(target.getUUID())) {
+        if (sourceAccountUUID.equals(request.getTargetAccountUUID())) {
             throw new IllegalArgumentException("Source and target accounts must be different");
         }
+
+        Account[] pair = requireAccountsLockedInDeterministicOrder(sourceAccountUUID, request.getTargetAccountUUID());
+        Account source = pair[0];
+        Account target = pair[1];
 
         if (source.getCurrency() != target.getCurrency()) {
             throw new IllegalArgumentException("Transfer requires accounts with the same currency; use currency conversion for different currencies");
@@ -184,6 +186,24 @@ public class TransactionService {
                 "Transfer", target.getBalance().add(request.getAmount()));
 
         return new TransferResult(sourceLeg, targetLeg);
+    }
+
+    /**
+     * Locks both accounts in deterministic (lexicographic UUID) order so that two
+     * opposite-direction transfers cannot deadlock each other — every multi-account
+     * operation acquires the row locks in the same global order.
+     *
+     * @return {source, target} in role order, both locked
+     */
+    private Account[] requireAccountsLockedInDeterministicOrder(String sourceUUID, String targetUUID) {
+        boolean sourceIsLower = sourceUUID.compareTo(targetUUID) < 0;
+        String firstUUID = sourceIsLower ? sourceUUID : targetUUID;
+        String secondUUID = sourceIsLower ? targetUUID : sourceUUID;
+
+        Account first = requireAccount(firstUUID);
+        Account second = requireAccount(secondUUID);
+
+        return sourceIsLower ? new Account[]{first, second} : new Account[]{second, first};
     }
 
     private Transaction persistLeg(Account account, TransactionType type, BigDecimal signedAmount, String description, BigDecimal newBalance) {

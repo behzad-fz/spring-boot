@@ -447,8 +447,6 @@ class TransactionServiceTest {
 
         authenticateAs(customer);
 
-        when(accountRepository.findByUUIDForUpdate("source-account")).thenReturn(account);
-
         CurrencyConversionRequest request = CurrencyConversionRequest.builder()
                 .targetAccountUUID("source-account")
                 .amount(new BigDecimal("20.00"))
