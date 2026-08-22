@@ -83,7 +83,7 @@ class TransactionServiceTest {
                 .description("top up")
                 .build();
 
-        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -105,7 +105,7 @@ class TransactionServiceTest {
                 .description("cash out")
                 .build();
 
-        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -123,7 +123,7 @@ class TransactionServiceTest {
                 .transactionType("PAYMENT")
                 .build();
 
-        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -139,7 +139,7 @@ class TransactionServiceTest {
                 .transactionType("TRANSFER")
                 .build();
 
-        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -155,7 +155,7 @@ class TransactionServiceTest {
                 .transactionType("WITHDRAWAL")
                 .build();
 
-        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
 
         InsufficientFundsException ex = assertThrows(
                 InsufficientFundsException.class,
@@ -188,7 +188,7 @@ class TransactionServiceTest {
                 .description("rent")
                 .build();
 
-        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
         when(recipientRepository.findByIban("NL91ABNA0417164300")).thenReturn(recipient);
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -223,7 +223,7 @@ class TransactionServiceTest {
                 .amount(new BigDecimal("30.00"))
                 .build();
 
-        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
         when(recipientRepository.findByIban("NL91ABNA0417164300")).thenReturn(recipient);
 
         assertThrows(RecipientNotFoundException.class,
@@ -243,7 +243,7 @@ class TransactionServiceTest {
                 .amount(new BigDecimal("30.00"))
                 .build();
 
-        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
         when(recipientRepository.findByIban("NL91ABNA0417164300")).thenReturn(null);
 
         assertThrows(RecipientNotFoundException.class,
@@ -266,7 +266,7 @@ class TransactionServiceTest {
                 .transactionType("DEPOSIT")
                 .build();
 
-        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -291,7 +291,7 @@ class TransactionServiceTest {
                 .transactionType("DEPOSIT")
                 .build();
 
-        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
 
         assertThrows(AccessDeniedException.class,
                 () -> transactionService.createTransaction(request, "account-uuid"));
@@ -316,7 +316,7 @@ class TransactionServiceTest {
                 .amount(new BigDecimal("30.00"))
                 .build();
 
-        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
 
         assertThrows(AccessDeniedException.class,
                 () -> transactionService.payToRecipient("account-uuid", request));
@@ -328,7 +328,7 @@ class TransactionServiceTest {
 
     @Test
     void createTransactionOnUnknownAccountReturns404() {
-        when(accountRepository.findByUUID("unknown-account")).thenReturn(null);
+        when(accountRepository.findByUUIDForUpdate("unknown-account")).thenReturn(null);
 
         NewTransaction request = NewTransaction.builder()
                 .amount(new BigDecimal("25.50"))
@@ -344,7 +344,7 @@ class TransactionServiceTest {
 
     @Test
     void payToRecipientOnUnknownAccountReturns404() {
-        when(accountRepository.findByUUID("unknown-account")).thenReturn(null);
+        when(accountRepository.findByUUIDForUpdate("unknown-account")).thenReturn(null);
 
         RecipientPaymentRequest request = RecipientPaymentRequest.builder()
                 .recipientIban("NL91ABNA0417164300")
@@ -377,8 +377,8 @@ class TransactionServiceTest {
 
         authenticateAs(customer);
 
-        when(accountRepository.findByUUID("source-account")).thenReturn(source);
-        when(accountRepository.findByUUID("target-account")).thenReturn(target);
+        when(accountRepository.findByUUIDForUpdate("source-account")).thenReturn(source);
+        when(accountRepository.findByUUIDForUpdate("target-account")).thenReturn(target);
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -417,8 +417,8 @@ class TransactionServiceTest {
 
         authenticateAs(customer);
 
-        when(accountRepository.findByUUID("source-account")).thenReturn(source);
-        when(accountRepository.findByUUID("target-account")).thenReturn(target);
+        when(accountRepository.findByUUIDForUpdate("source-account")).thenReturn(source);
+        when(accountRepository.findByUUIDForUpdate("target-account")).thenReturn(target);
 
         CurrencyConversionRequest request = CurrencyConversionRequest.builder()
                 .targetAccountUUID("target-account")
@@ -447,7 +447,7 @@ class TransactionServiceTest {
 
         authenticateAs(customer);
 
-        when(accountRepository.findByUUID("source-account")).thenReturn(account);
+        when(accountRepository.findByUUIDForUpdate("source-account")).thenReturn(account);
 
         CurrencyConversionRequest request = CurrencyConversionRequest.builder()
                 .targetAccountUUID("source-account")
@@ -483,8 +483,8 @@ class TransactionServiceTest {
 
         authenticateAs(owner);
 
-        when(accountRepository.findByUUID("source-account")).thenReturn(source);
-        when(accountRepository.findByUUID("target-account")).thenReturn(target);
+        when(accountRepository.findByUUIDForUpdate("source-account")).thenReturn(source);
+        when(accountRepository.findByUUIDForUpdate("target-account")).thenReturn(target);
 
         CurrencyConversionRequest request = CurrencyConversionRequest.builder()
                 .targetAccountUUID("target-account")
@@ -517,8 +517,8 @@ class TransactionServiceTest {
 
         authenticateAs(customer);
 
-        when(accountRepository.findByUUID("source-account")).thenReturn(source);
-        when(accountRepository.findByUUID("target-account")).thenReturn(target);
+        when(accountRepository.findByUUIDForUpdate("source-account")).thenReturn(source);
+        when(accountRepository.findByUUIDForUpdate("target-account")).thenReturn(target);
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -555,8 +555,8 @@ class TransactionServiceTest {
 
         authenticateAs(customer);
 
-        when(accountRepository.findByUUID("source-account")).thenReturn(source);
-        when(accountRepository.findByUUID("target-account")).thenReturn(target);
+        when(accountRepository.findByUUIDForUpdate("source-account")).thenReturn(source);
+        when(accountRepository.findByUUIDForUpdate("target-account")).thenReturn(target);
 
         TransferRequest request = TransferRequest.builder()
                 .targetAccountUUID("target-account")
@@ -590,8 +590,8 @@ class TransactionServiceTest {
 
         authenticateAs(customer);
 
-        when(accountRepository.findByUUID("source-account")).thenReturn(source);
-        when(accountRepository.findByUUID("target-account")).thenReturn(target);
+        when(accountRepository.findByUUIDForUpdate("source-account")).thenReturn(source);
+        when(accountRepository.findByUUIDForUpdate("target-account")).thenReturn(target);
 
         TransferRequest request = TransferRequest.builder()
                 .targetAccountUUID("target-account")
@@ -626,8 +626,8 @@ class TransactionServiceTest {
 
         authenticateAs(owner);
 
-        when(accountRepository.findByUUID("source-account")).thenReturn(source);
-        when(accountRepository.findByUUID("target-account")).thenReturn(target);
+        when(accountRepository.findByUUIDForUpdate("source-account")).thenReturn(source);
+        when(accountRepository.findByUUIDForUpdate("target-account")).thenReturn(target);
 
         TransferRequest request = TransferRequest.builder()
                 .targetAccountUUID("target-account")
@@ -648,7 +648,7 @@ class TransactionServiceTest {
 
         authenticateAs(customer);
 
-        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
         when(transactionRepository.findByAccountUUIDOrderByInitiatedAtDesc("account-uuid"))
                 .thenReturn(List.of(new Transaction(), new Transaction()));
 
@@ -660,7 +660,7 @@ class TransactionServiceTest {
 
     @Test
     void getTransactionsForUnknownAccountReturns404() {
-        when(accountRepository.findByUUID("unknown-account")).thenReturn(null);
+        when(accountRepository.findByUUIDForUpdate("unknown-account")).thenReturn(null);
 
         assertThrows(ResourceNotFoundException.class,
                 () -> transactionService.getTransactions("unknown-account"));
@@ -678,7 +678,7 @@ class TransactionServiceTest {
         other.setUUID("other-customer-uuid");
         authenticateAs(other);
 
-        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
 
         assertThrows(AccessDeniedException.class,
                 () -> transactionService.getTransactions("account-uuid"));
@@ -694,7 +694,7 @@ class TransactionServiceTest {
 
         authenticateAs(customer);
 
-        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
         when(scheduledTransactionRepository.save(any(ScheduledTransaction.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -721,7 +721,7 @@ class TransactionServiceTest {
         other.setUUID("other-customer-uuid");
         authenticateAs(other);
 
-        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
 
         ScheduleTransactionRequest request = ScheduleTransactionRequest.builder()
                 .amount(new BigDecimal("25.00"))
@@ -750,7 +750,7 @@ class TransactionServiceTest {
 
         when(scheduledTransactionRepository.findByStatusAndRunAtLessThanEqual(any(), any()))
                 .thenReturn(List.of(scheduled));
-        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(scheduledTransactionRepository.save(any(ScheduledTransaction.class)))
@@ -781,7 +781,7 @@ class TransactionServiceTest {
 
         when(scheduledTransactionRepository.findByStatusAndRunAtLessThanEqual(any(), any()))
                 .thenReturn(List.of(scheduled));
-        when(accountRepository.findByUUID("account-uuid")).thenReturn(account);
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
         when(scheduledTransactionRepository.save(any(ScheduledTransaction.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 

@@ -211,7 +211,7 @@ public class TransactionService {
     }
 
     private Account requireAccount(String accountUUID) {
-        Account account = accountRepository.findByUUID(accountUUID);
+        Account account = accountRepository.findByUUIDForUpdate(accountUUID);
 
         if (account == null) {
             throw new ResourceNotFoundException("Account not found");
