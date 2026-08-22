@@ -28,7 +28,7 @@ capability-gap analysis: implemented vs what a banking customer should expect.
 
 - No account statements (periodic or on-demand document/export)
 - No transaction search / filtering / pagination beyond full ordered history
-- No notifications of any kind (email is configured but unused)
+- Account-activation email on status change to ACTIVE (`AccountActivatedListener`) — the only notification; no other notification types exist
 - No overdraft policy / credit limit concept
 - No interest accrual
 - Only one-off scheduled withdrawals — no recurring payments / standing orders

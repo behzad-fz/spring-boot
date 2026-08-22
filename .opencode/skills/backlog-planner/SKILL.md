@@ -14,6 +14,10 @@ Read `docs/planner-feedback.md`. Every entry is a **binding rule** for this run,
 learned from past corrections. Apply them while gathering and judging candidates.
 If the file doesn't exist, skip silently.
 
+You never edit the feedback file during a planning run — it records the *human's*
+corrections. If a run reveals a new lesson, propose adding it in your report and
+let the human confirm (or record it yourself when explicitly asked outside a run).
+
 ## Step 2 — Gather signals (all six)
 
 1. **Codebase health** — scan the repo for smells, gaps, and tech debt: TODOs,
