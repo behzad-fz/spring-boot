@@ -1,6 +1,6 @@
 package com.bank.modules.customer.request;
 
-import com.bank.validtionRule.CustomLocalDateDeserializer;
+import com.bank.util.CustomLocalDateDeserializer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Past;
