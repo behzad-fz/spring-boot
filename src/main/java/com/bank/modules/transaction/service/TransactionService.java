@@ -1,9 +1,11 @@
 package com.bank.modules.transaction.service;
 
+import com.bank.exception.AccountNotOperableException;
 import com.bank.exception.InsufficientFundsException;
 import com.bank.exception.RecipientNotFoundException;
 import com.bank.exception.ResourceNotFoundException;
 import com.bank.modules.account.entity.Account;
+import com.bank.modules.account.enums.AccountStatus;
 import com.bank.modules.account.repository.AccountRepository;
 import com.bank.modules.customer.entity.Customer;
 import com.bank.modules.transaction.entity.CurrencyConversionResult;
@@ -30,7 +32,9 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class TransactionService {
@@ -39,6 +43,9 @@ public class TransactionService {
     private final AccountRepository accountRepository;
     private final RecipientRepository recipientRepository;
     private final ScheduledTransactionRepository scheduledTransactionRepository;
+
+    private static final Set<AccountStatus> BLOCKED_STATUSES = EnumSet.of(
+            AccountStatus.CLOSED, AccountStatus.SUSPENDED, AccountStatus.UNDER_INVESTIGATION);
 
     public TransactionService(TransactionRepository transactionRepository, AccountRepository accountRepository,
                               RecipientRepository recipientRepository,
@@ -55,6 +62,7 @@ public class TransactionService {
         BigDecimal amount = newTransaction.getAmount();
 
         Account account = requireAccount(accountUUID);
+        requireOperable(account);
 
         BigDecimal signedAmount = signedAmount(type, amount);
         BigDecimal newBalance = account.getBalance().add(signedAmount);
@@ -114,6 +122,9 @@ public class TransactionService {
         Account source = pair[0];
         Account target = pair[1];
 
+        requireOperable(source);
+        requireOperable(target);
+
         BigDecimal targetAmount = request.getAmount().multiply(request.getExchangeRate());
 
         Transaction sourceLeg = persistLeg(source, TransactionType.CURRENCY_CONVERSION, request.getAmount().negate(),
@@ -127,6 +138,7 @@ public class TransactionService {
     @Transactional
     public ScheduledTransaction scheduleTransaction(String accountUUID, ScheduleTransactionRequest request) {
         Account account = requireAccount(accountUUID);
+        requireOperable(account);
 
         ScheduledTransaction scheduled = ScheduledTransaction.builder()
                 .amount(request.getAmount())
@@ -175,6 +187,9 @@ public class TransactionService {
         Account[] pair = requireAccountsLockedInDeterministicOrder(sourceAccountUUID, request.getTargetAccountUUID());
         Account source = pair[0];
         Account target = pair[1];
+
+        requireOperable(source);
+        requireOperable(target);
 
         if (source.getCurrency() != target.getCurrency()) {
             throw new IllegalArgumentException("Transfer requires accounts with the same currency; use currency conversion for different currencies");
@@ -248,6 +263,13 @@ public class TransactionService {
                 && (account.getCustomer() == null
                     || !account.getCustomer().getUUID().equals(authenticatedCustomer.getUUID()))) {
             throw new AccessDeniedException("Account does not belong to the authenticated customer");
+        }
+    }
+
+    private void requireOperable(Account account) {
+        if (BLOCKED_STATUSES.contains(account.getStatus())) {
+            throw new AccountNotOperableException(
+                    "Account is " + account.getStatus() + " and cannot perform transactions");
         }
     }
 

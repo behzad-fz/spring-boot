@@ -66,4 +66,15 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.badRequest().body(body);
     }
+
+    @ExceptionHandler(AccountNotOperableException.class)
+    public ResponseEntity<ErrorResponse> handleAccountNotOperable(AccountNotOperableException ex) {
+        ErrorResponse body = ErrorResponse.of(
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                ex.getMessage()
+        );
+
+        return ResponseEntity.badRequest().body(body);
+    }
 }
