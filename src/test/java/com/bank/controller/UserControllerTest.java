@@ -47,7 +47,7 @@ class UserControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = "ADMIN")
     void adminReturnsHello() throws Exception {
         mockMvc.perform(get("/users/admin"))
                 .andExpect(status().isOk())
