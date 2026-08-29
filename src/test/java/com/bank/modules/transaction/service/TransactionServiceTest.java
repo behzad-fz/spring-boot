@@ -790,6 +790,31 @@ class TransactionServiceTest {
         assertEquals(0, new BigDecimal("10.00").compareTo(account.getBalance()));
     }
 
+    @Test
+    void processDueScheduledTransactionDoesNotPoisonBatchOnUnexpectedError() {
+        Customer customer = new Customer();
+        customer.setUUID("customer-uuid");
+        account.setCustomer(customer);
+
+        ScheduledTransaction scheduled = ScheduledTransaction.builder()
+                .id(1L)
+                .amount(new BigDecimal("25.00"))
+                .transactionType(TransactionType.WITHDRAWAL)
+                .status(TransactionStatus.PENDING)
+                .account(account)
+                .build();
+
+        when(scheduledTransactionRepository.findByStatusAndRunAtLessThanEqual(any(), any()))
+                .thenReturn(List.of(scheduled));
+        when(accountRepository.findByUUIDForUpdate("account-uuid"))
+                .thenThrow(new RuntimeException("transient failure"));
+
+        assertDoesNotThrow(() -> transactionService.processDueScheduledTransactions());
+
+        assertEquals(TransactionStatus.FAILED, scheduled.getStatus());
+        assertNotNull(scheduled.getStatusExplanation());
+    }
+
     private void authenticateAs(Customer customer) {
         if (customer.getRole() == null) {
             customer.setRole(CustomerRole.ORDINARY_CUSTOMER);
