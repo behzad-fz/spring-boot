@@ -49,9 +49,12 @@ public class AccountController {
     @PatchMapping("/{accountUUID}")
     private ResponseEntity<Account> updateStatus(
             @Valid @RequestBody UpdateAccountStatusRequest request,
+            @PathVariable String customerUUID,
             @PathVariable String accountUUID
     ) {
-        Account account = accountService.updateStatus(request, accountUUID);
+        requireCustomerOwns(customerUUID);
+
+        Account account = accountService.updateStatus(request, customerUUID, accountUUID);
 
         return ResponseEntity.ok(account);
     }
