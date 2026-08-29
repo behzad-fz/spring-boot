@@ -8,8 +8,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Principal;
-
 @RestController
 @RequestMapping("/users")
 public class UserController {
@@ -19,11 +17,6 @@ public class UserController {
 
         @Autowired
     private PasswordEncoder encoder;
-
-    @GetMapping("/{id}")
-    public String findUserById(@PathVariable("id") Long id, Principal principal) {
-        return "find user "+ id + principal.getName();
-    }
 
     @GetMapping("/admin")
     @PreAuthorize("hasRole('ADMIN')")
