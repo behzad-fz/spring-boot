@@ -1,11 +1,13 @@
 package com.bank.modules.transaction.service;
 
+import com.bank.exception.DuplicateRecipientException;
 import com.bank.exception.ResourceNotFoundException;
 import com.bank.modules.customer.entity.Customer;
 import com.bank.modules.customer.repository.CustomerRepository;
 import com.bank.modules.transaction.entity.Recipient;
 import com.bank.modules.transaction.repository.RecipientRepository;
 import com.bank.modules.transaction.request.RecipientRequest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -39,7 +41,12 @@ public class RecipientService {
 
         recipient.setCustomer(customer);
 
-        return recipientRepository.save(recipient);
+        try {
+            return recipientRepository.save(recipient);
+        } catch (DataIntegrityViolationException e) {
+            throw new DuplicateRecipientException(
+                    "A recipient with IBAN " + newRecipient.getIban() + " already exists");
+        }
     }
 
     public Recipient update(RecipientRequest request, Long id) {

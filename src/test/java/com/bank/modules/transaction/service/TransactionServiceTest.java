@@ -3,6 +3,7 @@ package com.bank.modules.transaction.service;
 import com.bank.exception.InsufficientFundsException;
 import com.bank.exception.RecipientNotFoundException;
 import com.bank.exception.ResourceNotFoundException;
+import com.bank.exception.UnknownCurrencyPairException;
 import com.bank.modules.account.entity.Account;
 import com.bank.modules.account.repository.AccountRepository;
 import com.bank.modules.customer.entity.Customer;
@@ -17,6 +18,7 @@ import com.bank.modules.transaction.enums.TransactionType;
 import com.bank.modules.transaction.repository.RecipientRepository;
 import com.bank.modules.transaction.repository.ScheduledTransactionRepository;
 import com.bank.modules.transaction.repository.TransactionRepository;
+import com.bank.modules.transaction.service.ExchangeRateService;
 import com.bank.modules.transaction.request.CurrencyConversionRequest;
 import com.bank.modules.transaction.request.NewTransaction;
 import com.bank.modules.transaction.request.RecipientPaymentRequest;
@@ -32,6 +34,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
@@ -57,6 +60,9 @@ class TransactionServiceTest {
     @Mock
     private ScheduledTransactionRepository scheduledTransactionRepository;
 
+    @Mock
+    private ExchangeRateService exchangeRateService;
+
     @InjectMocks
     private TransactionService transactionService;
 
@@ -68,6 +74,9 @@ class TransactionServiceTest {
         account.setId(1L);
         account.setUUID("account-uuid");
         account.setBalance(new BigDecimal("100.00"));
+
+        lenient().when(exchangeRateService.rate(any(Currency.class), any(Currency.class)))
+                .thenReturn(new BigDecimal("1.10"));
     }
 
     @AfterEach
@@ -385,7 +394,7 @@ class TransactionServiceTest {
         CurrencyConversionRequest request = CurrencyConversionRequest.builder()
                 .targetAccountUUID("target-account")
                 .amount(new BigDecimal("20.00"))
-                .exchangeRate(new BigDecimal("1.10"))
+
                 .build();
 
         CurrencyConversionResult result = transactionService.convertCurrency("source-account", request);
@@ -423,7 +432,7 @@ class TransactionServiceTest {
         CurrencyConversionRequest request = CurrencyConversionRequest.builder()
                 .targetAccountUUID("target-account")
                 .amount(new BigDecimal("20.00"))
-                .exchangeRate(new BigDecimal("1.10"))
+
                 .build();
 
         assertThrows(InsufficientFundsException.class,
@@ -450,7 +459,7 @@ class TransactionServiceTest {
         CurrencyConversionRequest request = CurrencyConversionRequest.builder()
                 .targetAccountUUID("source-account")
                 .amount(new BigDecimal("20.00"))
-                .exchangeRate(new BigDecimal("1.10"))
+
                 .build();
 
         assertThrows(IllegalArgumentException.class,
@@ -487,7 +496,7 @@ class TransactionServiceTest {
         CurrencyConversionRequest request = CurrencyConversionRequest.builder()
                 .targetAccountUUID("target-account")
                 .amount(new BigDecimal("20.00"))
-                .exchangeRate(new BigDecimal("1.10"))
+
                 .build();
 
         assertThrows(AccessDeniedException.class,
@@ -788,6 +797,60 @@ class TransactionServiceTest {
         assertEquals(TransactionStatus.FAILED, scheduled.getStatus());
         assertNotNull(scheduled.getStatusExplanation());
         assertEquals(0, new BigDecimal("10.00").compareTo(account.getBalance()));
+    }
+
+    @Test
+    void nonCustomerPrincipalCannotTransact() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("admin", null,
+                        List.of(new SimpleGrantedAuthority("ADMIN"))));
+
+        NewTransaction request = NewTransaction.builder()
+                .amount(new BigDecimal("10.00"))
+                .transactionType("DEPOSIT")
+                .build();
+
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
+
+        assertThrows(AccessDeniedException.class,
+                () -> transactionService.createTransaction(request, "account-uuid"));
+
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void currencyConversionWithUnsupportedRateIsRejected() {
+        Customer customer = new Customer();
+        customer.setUUID("customer-uuid");
+
+        Account source = new Account();
+        source.setUUID("source-account");
+        source.setBalance(new BigDecimal("100.00"));
+        source.setCurrency(Currency.EUR);
+        source.setCustomer(customer);
+
+        Account target = new Account();
+        target.setUUID("target-account");
+        target.setBalance(new BigDecimal("50.00"));
+        target.setCurrency(Currency.USD);
+        target.setCustomer(customer);
+
+        authenticateAs(customer);
+
+        when(accountRepository.findByUUIDForUpdate("source-account")).thenReturn(source);
+        when(accountRepository.findByUUIDForUpdate("target-account")).thenReturn(target);
+        when(exchangeRateService.rate(Currency.EUR, Currency.USD))
+                .thenThrow(new UnknownCurrencyPairException("no rate"));
+
+        CurrencyConversionRequest request = CurrencyConversionRequest.builder()
+                .targetAccountUUID("target-account")
+                .amount(new BigDecimal("20.00"))
+                .build();
+
+        assertThrows(UnknownCurrencyPairException.class,
+                () -> transactionService.convertCurrency("source-account", request));
+
+        verify(transactionRepository, never()).save(any());
     }
 
     private void authenticateAs(Customer customer) {

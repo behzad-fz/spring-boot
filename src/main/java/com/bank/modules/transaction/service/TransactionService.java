@@ -6,6 +6,7 @@ import com.bank.exception.ResourceNotFoundException;
 import com.bank.modules.account.entity.Account;
 import com.bank.modules.account.repository.AccountRepository;
 import com.bank.modules.customer.entity.Customer;
+import com.bank.modules.transaction.service.ExchangeRateService;
 import com.bank.modules.transaction.entity.CurrencyConversionResult;
 import com.bank.modules.transaction.entity.Recipient;
 import com.bank.modules.transaction.entity.ScheduledTransaction;
@@ -39,14 +40,17 @@ public class TransactionService {
     private final AccountRepository accountRepository;
     private final RecipientRepository recipientRepository;
     private final ScheduledTransactionRepository scheduledTransactionRepository;
+    private final ExchangeRateService exchangeRateService;
 
     public TransactionService(TransactionRepository transactionRepository, AccountRepository accountRepository,
                               RecipientRepository recipientRepository,
-                              ScheduledTransactionRepository scheduledTransactionRepository) {
+                              ScheduledTransactionRepository scheduledTransactionRepository,
+                              ExchangeRateService exchangeRateService) {
         this.transactionRepository = transactionRepository;
         this.accountRepository = accountRepository;
         this.recipientRepository = recipientRepository;
         this.scheduledTransactionRepository = scheduledTransactionRepository;
+        this.exchangeRateService = exchangeRateService;
     }
 
     @Transactional
@@ -114,7 +118,8 @@ public class TransactionService {
         Account source = pair[0];
         Account target = pair[1];
 
-        BigDecimal targetAmount = request.getAmount().multiply(request.getExchangeRate());
+        BigDecimal targetAmount = request.getAmount().multiply(
+                exchangeRateService.rate(source.getCurrency(), target.getCurrency()));
 
         Transaction sourceLeg = persistLeg(source, TransactionType.CURRENCY_CONVERSION, request.getAmount().negate(),
                 "Currency conversion", source.getBalance().subtract(request.getAmount()));
@@ -243,12 +248,22 @@ public class TransactionService {
     }
 
     private void requireOwnership(Account account) {
-        Customer authenticatedCustomer = authenticatedCustomer();
-        if (authenticatedCustomer != null
-                && (account.getCustomer() == null
-                    || !account.getCustomer().getUUID().equals(authenticatedCustomer.getUUID()))) {
-            throw new AccessDeniedException("Account does not belong to the authenticated customer");
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            // No authenticated principal (e.g. server-side scheduled processing) — skip ownership.
+            return;
         }
+
+        if (authentication.getPrincipal() instanceof Customer customer) {
+            if (account.getCustomer() == null
+                    || !account.getCustomer().getUUID().equals(customer.getUUID())) {
+                throw new AccessDeniedException("Account does not belong to the authenticated customer");
+            }
+            return;
+        }
+
+        // Non-customer principals (USER/admin) must not transact on customer accounts via this path.
+        throw new AccessDeniedException("Only the account owner may perform transactions");
     }
 
     private Customer authenticatedCustomer() {
