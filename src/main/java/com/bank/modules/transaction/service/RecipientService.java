@@ -1,11 +1,13 @@
 package com.bank.modules.transaction.service;
 
+import com.bank.exception.DuplicateRecipientException;
 import com.bank.exception.ResourceNotFoundException;
 import com.bank.modules.customer.entity.Customer;
 import com.bank.modules.customer.repository.CustomerRepository;
 import com.bank.modules.transaction.entity.Recipient;
 import com.bank.modules.transaction.repository.RecipientRepository;
 import com.bank.modules.transaction.request.RecipientRequest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -39,11 +41,18 @@ public class RecipientService {
 
         recipient.setCustomer(customer);
 
-        return recipientRepository.save(recipient);
+        try {
+            return recipientRepository.save(recipient);
+        } catch (DataIntegrityViolationException e) {
+            throw new DuplicateRecipientException(
+                    "A recipient with IBAN " + newRecipient.getIban() + " already exists");
+        }
     }
 
-    public Recipient update(RecipientRequest request, Long id) {
-        Recipient recipient = recipientRepository.findById(id).orElseThrow();
+    public Recipient update(RecipientRequest request, Long id, String customerUUID) {
+        requireCustomer(customerUUID);
+        Recipient recipient = requireOwnedRecipient(id, customerUUID);
+
         recipient.setFullName(request.getFullName());
         recipient.setIban(request.getIban());
         recipient.setEmail(request.getEmail());
@@ -52,8 +61,24 @@ public class RecipientService {
         return recipientRepository.save(recipient);
     }
 
-    public void delete(Long id) {
-        recipientRepository.deleteById(id);
+    public void delete(Long id, String customerUUID) {
+        requireCustomer(customerUUID);
+        Recipient recipient = requireOwnedRecipient(id, customerUUID);
+
+        recipientRepository.delete(recipient);
+    }
+
+    private Recipient requireOwnedRecipient(Long id, String customerUUID) {
+        Recipient recipient = recipientRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Recipient not found"));
+
+        if (recipient.getCustomer() == null
+                || recipient.getCustomer().getUUID() == null
+                || !recipient.getCustomer().getUUID().equals(customerUUID)) {
+            throw new ResourceNotFoundException("Recipient not found");
+        }
+
+        return recipient;
     }
 
     private Customer requireCustomer(String customerUUID) {

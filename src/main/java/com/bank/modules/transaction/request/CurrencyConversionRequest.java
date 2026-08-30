@@ -22,8 +22,4 @@ public class CurrencyConversionRequest {
     @NotNull
     @Positive(message = "Amount must be positive")
     private BigDecimal amount;
-
-    @NotNull
-    @Positive(message = "Exchange rate must be positive")
-    private BigDecimal exchangeRate;
 }

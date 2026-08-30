@@ -11,8 +11,12 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 
 import java.time.LocalDate;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class AccountActivatedListener {
+
+    private static final Logger log = Logger.getLogger(AccountActivatedListener.class.getName());
 
     private final AccountRepository accountRepository;
     private final JavaMailSender mailSender;
@@ -50,7 +54,13 @@ public class AccountActivatedListener {
 
             mailSender.send(mimeMessage);
         } catch (Exception e) {
-            // TODO: Report to sentry
+            Long customerId = account.getCustomer() != null ? account.getCustomer().getId() : null;
+            String customerEmail = account.getCustomer() != null ? account.getCustomer().getEmail() : "unknown";
+            log.log(Level.SEVERE,
+                    "Failed to send account activation email for account id=" + account.getId()
+                            + ", customer id=" + customerId
+                            + ", customer email=" + customerEmail,
+                    e);
         }
     }
 }
