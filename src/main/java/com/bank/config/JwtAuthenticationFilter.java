@@ -5,6 +5,7 @@ import com.bank.modules.customer.repository.CustomerTokenRepository;
 import com.bank.repository.TokenRepository;
 import com.bank.repository.UserRepository;
 import com.bank.service.TokenService;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -51,26 +52,32 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // why 7 ? because "Bearer " length is 7 and token starts after that index
         jwt = authHeader.substring(7);
-        username = tokenService.extractUserName(jwt);
-        userType = tokenService.extractUserType(jwt);
 
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        try {
+            username = tokenService.extractUserName(jwt);
+            userType = tokenService.extractUserType(jwt);
 
-            UserDetails userDetails = userDetailsService(userType).loadUserByUsername(username);
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            if (tokenService.isTokenValid(jwt, userDetails) && isJwtValid(userType, jwt)) {
-                UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities()
-                );
+                UserDetails userDetails = userDetailsService(userType).loadUserByUsername(username);
 
-                authenticationToken.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                );
+                if (tokenService.isTokenValid(jwt, userDetails) && isJwtValid(userType, jwt)) {
+                    UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities()
+                    );
 
-                SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                    authenticationToken.setDetails(
+                            new WebAuthenticationDetailsSource().buildDetails(request)
+                    );
+
+                    SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                }
             }
+        } catch (JwtException | IllegalArgumentException e) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token");
+            return;
         }
 
         filterChain.doFilter(request, response);

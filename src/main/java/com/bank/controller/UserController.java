@@ -19,7 +19,7 @@ public class UserController {
     private PasswordEncoder encoder;
 
     @GetMapping("/admin")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public String admin() {
         return "Hello admin!";
     }

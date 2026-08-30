@@ -32,6 +32,7 @@ public class CustomerController {
         return ResponseEntity.ok(customers);
     }
 
+    @PreAuthorize("hasAuthority('USER')")
     @GetMapping("search")
     public ResponseEntity<List<Customer>> search(
             @RequestParam(required = true) String queryString
@@ -49,6 +50,7 @@ public class CustomerController {
         return ResponseEntity.status(HttpStatus.CREATED).body(customer);
     }
 
+    @PreAuthorize("hasAuthority('USER')")
     @PutMapping("{customerUUID}")
     public ResponseEntity<Customer> updateCustomer(
             @Valid @RequestBody CustomerRequest request,
@@ -59,6 +61,7 @@ public class CustomerController {
         return ResponseEntity.ok(customer);
     }
 
+    @PreAuthorize("hasAuthority('USER')")
     @DeleteMapping("{customerUUID}")
     public ResponseEntity<Void> delete(@PathVariable String customerUUID) {
         customerService.delete(customerUUID);
