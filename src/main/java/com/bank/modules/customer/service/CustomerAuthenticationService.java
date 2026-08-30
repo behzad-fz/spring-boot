@@ -9,6 +9,7 @@ import com.bank.modules.customer.repository.CustomerRepository;
 import com.bank.modules.customer.repository.CustomerTokenRepository;
 import com.bank.service.TokenService;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -54,7 +55,8 @@ public class CustomerAuthenticationService {
                 )
         );
 
-        var customer = customerRepository.findByUsername(request.getUsername()).orElseThrow();
+        var customer = customerRepository.findByUsername(request.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("Customer not found"));
 
         var jwtToken = tokenService.generateToken(customer, "customer");
 

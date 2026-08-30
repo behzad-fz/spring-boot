@@ -42,10 +42,14 @@ public class AccountService {
         return accountRepository.save(account);
     }
 
-    public Account updateStatus(UpdateAccountStatusRequest request, String accountUUID) {
+    public Account updateStatus(UpdateAccountStatusRequest request, String customerUUID, String accountUUID) {
         Account account = accountRepository.findByUUID(accountUUID);
 
         if (account == null) {
+            throw new ResourceNotFoundException("Account not found");
+        }
+
+        if (account.getCustomer() == null || !account.getCustomer().getUUID().equals(customerUUID)) {
             throw new ResourceNotFoundException("Account not found");
         }
 
