@@ -13,7 +13,7 @@ truth and file your findings on the PR.
 ## Input
 
 You will be told the PR number and (usually) the Jira ticket key. Example:
-"Review PR #42 against SCRUM-9."
+"Review PR #42 against BK-9."
 
 ## Procedure
 

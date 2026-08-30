@@ -11,7 +11,7 @@ work.
 
 "Endorsed" means one of:
 
-1. **Arguments**: `$ARGUMENTS` lists explicit ticket keys (e.g. `SCRUM-46 SCRUM-50`) —
+1. **Arguments**: `$ARGUMENTS` lists explicit ticket keys (e.g. `BK-46 BK-50`) —
    promote exactly those, if (and only if) each carries the `proposal` label.
 2. **Batch plan endorsement**: no arguments given — read the most recent
    `docs/plans/YYYY-MM-DD.md` and look for items explicitly marked as endorsed by the

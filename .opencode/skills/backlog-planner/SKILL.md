@@ -34,7 +34,7 @@ let the human confirm (or record it yourself when explicitly asked outside a run
    concrete buildable tickets. If empty, say so in the plan — but an empty roadmap
    does NOT mean an empty batch: signal 2 still produces feature ideas (flagged as
    needing human direction).
-4. **Board state** — query the Jira board (SCRUM project): carryover, blockers,
+4. **Board state** — query the Jira board (BK project): carryover, blockers,
    repeated bug areas, tickets bouncing back from review.
 5. **R&D / exploration** — spikes, library evaluations, proof-of-concept drafts.
    LOW confidence by design.
@@ -44,7 +44,7 @@ let the human confirm (or record it yourself when explicitly asked outside a run
 ## Step 3 — Dedup pre-check (mandatory)
 
 Before drafting any ticket, check whether an open (non-Done) ticket already covers
-the item — query SCRUM and compare against its summary/description AND the current
+the item — query BK and compare against its summary/description AND the current
 batch plans under `docs/plans/`. Skip duplicates. Never create one.
 
 ## Step 4 — Evidence discipline (mandatory)
