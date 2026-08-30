@@ -53,4 +53,20 @@ class RecipientServiceTest {
 
         verify(recipientRepository, never()).save(any());
     }
+
+    @Test
+    void updateForUnknownRecipientReturns404() {
+        when(recipientRepository.findById(999L)).thenReturn(java.util.Optional.empty());
+
+        RecipientRequest request = RecipientRequest.builder()
+                .fullName("Jane Doe")
+                .iban("NL91ABNA0417164300")
+                .bankName("TestBank")
+                .build();
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> recipientService.update(request, 999L));
+
+        verify(recipientRepository, never()).save(any());
+    }
 }

@@ -43,7 +43,8 @@ public class RecipientService {
     }
 
     public Recipient update(RecipientRequest request, Long id) {
-        Recipient recipient = recipientRepository.findById(id).orElseThrow();
+        Recipient recipient = recipientRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Recipient not found with id " + id));
         recipient.setFullName(request.getFullName());
         recipient.setIban(request.getIban());
         recipient.setEmail(request.getEmail());
