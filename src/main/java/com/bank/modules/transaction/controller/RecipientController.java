@@ -39,16 +39,20 @@ public class RecipientController {
     @PutMapping("{id}")
     private ResponseEntity<Recipient> update(
             @Valid @RequestBody RecipientRequest request,
+            @PathVariable String customerUUID,
             @PathVariable Long id
     ) {
-        Recipient recipient = recipientService.update(request, id);
+        Recipient recipient = recipientService.update(request, id, customerUUID);
 
         return ResponseEntity.ok(recipient);
     }
 
     @DeleteMapping("{id}")
-    private ResponseEntity<Void> delete(@PathVariable Long id) {
-        recipientService.delete(id);
+    private ResponseEntity<Void> delete(
+            @PathVariable String customerUUID,
+            @PathVariable Long id
+    ) {
+        recipientService.delete(id, customerUUID);
 
         return ResponseEntity.noContent().build();
     }

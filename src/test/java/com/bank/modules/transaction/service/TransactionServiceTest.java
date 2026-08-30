@@ -1,10 +1,12 @@
 package com.bank.modules.transaction.service;
 
+import com.bank.exception.AccountNotOperableException;
 import com.bank.exception.InsufficientFundsException;
 import com.bank.exception.RecipientNotFoundException;
 import com.bank.exception.ResourceNotFoundException;
 import com.bank.exception.UnknownCurrencyPairException;
 import com.bank.modules.account.entity.Account;
+import com.bank.modules.account.enums.AccountStatus;
 import com.bank.modules.account.repository.AccountRepository;
 import com.bank.modules.customer.entity.Customer;
 import com.bank.modules.customer.entity.CustomerRole;
@@ -859,5 +861,146 @@ class TransactionServiceTest {
         }
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(customer, null, customer.getAuthorities()));
+    }
+
+    @Test
+    void createTransactionOnClosedAccountIsRejected() {
+        account.setStatus(AccountStatus.CLOSED);
+        NewTransaction request = NewTransaction.builder()
+                .amount(new BigDecimal("10.00"))
+                .transactionType("DEPOSIT")
+                .build();
+
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
+
+        assertThrows(AccountNotOperableException.class,
+                () -> transactionService.createTransaction(request, "account-uuid"));
+
+        verify(transactionRepository, never()).save(any());
+        verify(accountRepository, never()).save(any());
+    }
+
+    @Test
+    void createTransactionOnSuspendedAccountIsRejected() {
+        account.setStatus(AccountStatus.SUSPENDED);
+        NewTransaction request = NewTransaction.builder()
+                .amount(new BigDecimal("10.00"))
+                .transactionType("DEPOSIT")
+                .build();
+
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
+
+        assertThrows(AccountNotOperableException.class,
+                () -> transactionService.createTransaction(request, "account-uuid"));
+
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void transferBetweenAccountsWithClosedSourceIsRejected() {
+        Customer customer = new Customer();
+        customer.setUUID("customer-uuid");
+
+        Account source = new Account();
+        source.setUUID("source-account");
+        source.setBalance(new BigDecimal("100.00"));
+        source.setCurrency(Currency.EUR);
+        source.setCustomer(customer);
+        source.setStatus(AccountStatus.CLOSED);
+
+        Account target = new Account();
+        target.setUUID("target-account");
+        target.setBalance(new BigDecimal("50.00"));
+        target.setCurrency(Currency.EUR);
+        target.setCustomer(customer);
+
+        authenticateAs(customer);
+
+        when(accountRepository.findByUUIDForUpdate("source-account")).thenReturn(source);
+        when(accountRepository.findByUUIDForUpdate("target-account")).thenReturn(target);
+
+        TransferRequest request = TransferRequest.builder()
+                .targetAccountUUID("target-account")
+                .amount(new BigDecimal("30.00"))
+                .build();
+
+        assertThrows(AccountNotOperableException.class,
+                () -> transactionService.transferBetweenAccounts("source-account", request));
+
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void currencyConversionWithSuspendedAccountIsRejected() {
+        Customer customer = new Customer();
+        customer.setUUID("customer-uuid");
+
+        Account source = new Account();
+        source.setUUID("source-account");
+        source.setBalance(new BigDecimal("100.00"));
+        source.setCurrency(Currency.EUR);
+        source.setCustomer(customer);
+        source.setStatus(AccountStatus.SUSPENDED);
+
+        Account target = new Account();
+        target.setUUID("target-account");
+        target.setBalance(new BigDecimal("50.00"));
+        target.setCurrency(Currency.USD);
+        target.setCustomer(customer);
+
+        authenticateAs(customer);
+
+        when(accountRepository.findByUUIDForUpdate("source-account")).thenReturn(source);
+        when(accountRepository.findByUUIDForUpdate("target-account")).thenReturn(target);
+
+        CurrencyConversionRequest request = CurrencyConversionRequest.builder()
+                .targetAccountUUID("target-account")
+                .amount(new BigDecimal("20.00"))
+                .build();
+
+        assertThrows(AccountNotOperableException.class,
+                () -> transactionService.convertCurrency("source-account", request));
+
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void scheduleTransactionOnClosedAccountIsRejected() {
+        Customer customer = new Customer();
+        customer.setUUID("customer-uuid");
+        account.setCustomer(customer);
+        account.setStatus(AccountStatus.CLOSED);
+
+        authenticateAs(customer);
+
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
+
+        ScheduleTransactionRequest request = ScheduleTransactionRequest.builder()
+                .amount(new BigDecimal("25.00"))
+                .runAt(LocalDateTime.now().plusDays(1))
+                .build();
+
+        assertThrows(AccountNotOperableException.class,
+                () -> transactionService.scheduleTransaction("account-uuid", request));
+
+        verify(scheduledTransactionRepository, never()).save(any());
+    }
+
+    @Test
+    void createTransactionOnActiveAccountStillSucceeds() {
+        account.setStatus(AccountStatus.ACTIVE);
+        NewTransaction request = NewTransaction.builder()
+                .amount(new BigDecimal("25.50"))
+                .transactionType("DEPOSIT")
+                .build();
+
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Transaction result = transactionService.createTransaction(request, "account-uuid");
+
+        assertEquals(0, new BigDecimal("125.50").compareTo(account.getBalance()));
+        assertEquals(TransactionStatus.COMPLETED, result.getStatus());
     }
 }

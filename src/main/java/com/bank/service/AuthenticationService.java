@@ -9,6 +9,7 @@ import com.bank.entity.TokenType;
 import com.bank.entity.User;
 import com.bank.repository.TokenRepository;
 import com.bank.repository.UserRepository;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -71,7 +72,8 @@ public class AuthenticationService {
                 )
         );
 
-        var user = userRepository.findByUsername(request.getUsername()).orElseThrow();
+        var user = userRepository.findByUsername(request.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         var jwtToken = tokenService.generateToken(user, "user");
 
