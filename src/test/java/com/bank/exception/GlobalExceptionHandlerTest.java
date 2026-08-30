@@ -1,65 +1,34 @@
 package com.bank.exception;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.BindException;
-import org.springframework.validation.FieldError;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class GlobalExceptionHandlerTest {
 
     private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
 
     @Test
-    void validationErrorsShareTheUnifiedShape() {
-        BindException ex = new BindException(new Object(), "target");
-        ex.addError(new FieldError("target", "amount", "Amount must be positive"));
+    void unhandledExceptionReturnsGeneric500WithoutLeakingDetails() {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getMethod()).thenReturn("POST");
+        when(request.getRequestURI()).thenReturn("/api/v1/transactions");
 
-        ResponseEntity<ErrorResponse> response = handler.handleValidationException(ex);
+        Exception ex = new RuntimeException("secret internal detail: table X broken");
 
-        assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatusCode().value());
+        ResponseEntity<ErrorResponse> response = handler.handleUnexpected(ex, request);
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         ErrorResponse body = response.getBody();
-        assertNotNull(body);
-        assertEquals("Validation failed", body.error());
-        assertTrue(body.fieldErrors().containsKey("amount"));
-    }
-
-    @Test
-    void insufficientFundsSharesTheUnifiedShape() {
-        ResponseEntity<ErrorResponse> response =
-                handler.handleInsufficientFunds(new InsufficientFundsException("Insufficient funds for this transaction"));
-
-        assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatusCode().value());
-        ErrorResponse body = response.getBody();
-        assertNotNull(body);
-        assertEquals("Bad Request", body.error());
-        assertEquals("Insufficient funds for this transaction", body.message());
-        assertNull(body.fieldErrors());
-    }
-
-    @Test
-    void notFoundSharesTheUnifiedShape() {
-        ResponseEntity<ErrorResponse> response =
-                handler.handleNotFound(new ResourceNotFoundException("Account not found"));
-
-        assertEquals(HttpStatus.NOT_FOUND.value(), response.getStatusCode().value());
-        ErrorResponse body = response.getBody();
-        assertNotNull(body);
-        assertEquals("Not Found", body.error());
-        assertEquals("Account not found", body.message());
-    }
-
-    @Test
-    void illegalArgumentIsBadRequestNotServerError() {
-        ResponseEntity<ErrorResponse> response =
-                handler.handleIllegalArgument(new IllegalArgumentException("Invalid type of transaction"));
-
-        assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatusCode().value());
-        ErrorResponse body = response.getBody();
-        assertNotNull(body);
-        assertEquals("Bad Request", body.error());
-        assertEquals("Invalid type of transaction", body.message());
+        assertEquals(500, body.status());
+        assertEquals("Internal Server Error", body.error());
+        assertEquals("An unexpected error occurred", body.message());
+        assertFalse(body.message().contains("secret"), "response must not leak internal details");
     }
 }
