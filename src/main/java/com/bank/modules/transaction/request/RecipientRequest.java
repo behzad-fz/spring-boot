@@ -1,5 +1,6 @@
 package com.bank.modules.transaction.request;
 
+import com.bank.validation.ValidIban;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,6 +19,7 @@ public class RecipientRequest {
     private String email;
 
     @NotNull
+    @ValidIban
     private String iban;
 
     @NotNull

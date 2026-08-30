@@ -1,5 +1,6 @@
 package com.bank.modules.transaction.request;
 
+import com.bank.validation.ValidIban;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -17,6 +18,7 @@ import java.math.BigDecimal;
 public class RecipientPaymentRequest {
 
     @NotBlank
+    @ValidIban
     private String recipientIban;
 
     @NotNull
