@@ -152,11 +152,24 @@ public class TransactionService {
             throw new RecipientNotFoundException("Recipient not found or not owned by this customer");
         }
 
-        return createTransaction(NewTransaction.builder()
-                .amount(request.getAmount())
-                .transactionType("PAYMENT")
-                .description(request.getDescription())
-                .build(), accountUUID);
+        Account target = accountRepository.findByIban(request.getRecipientIban());
+        if (target == null) {
+            throw new IllegalArgumentException("No internal account exists for recipient IBAN");
+        }
+
+        Account[] pair = requireAccountsLockedInDeterministicOrder(account.getUUID(), target.getUUID());
+        Account source = pair[0];
+        Account recipientAccount = pair[1];
+
+        requireOperable(source);
+        requireOperable(recipientAccount);
+
+        Transaction sourceLeg = persistLeg(source, TransactionType.PAYMENT, request.getAmount().negate(),
+                request.getDescription(), source.getBalance().subtract(request.getAmount()));
+        persistLeg(recipientAccount, TransactionType.PAYMENT, request.getAmount(),
+                request.getDescription(), recipientAccount.getBalance().add(request.getAmount()));
+
+        return sourceLeg;
     }
     @Transactional
     public CurrencyConversionResult convertCurrency(String sourceAccountUUID, CurrencyConversionRequest request) {

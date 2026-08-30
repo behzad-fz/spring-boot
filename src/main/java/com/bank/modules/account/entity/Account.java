@@ -4,6 +4,7 @@ import com.bank.enums.Currency;
 import com.bank.modules.account.enums.AccountStatus;
 import com.bank.modules.account.enums.AccountType;
 import com.bank.modules.account.helpers.AccountNumberGenerator;
+import com.bank.modules.account.helpers.IbanGenerator;
 import com.bank.modules.account.listener.AccountActivatedListener;
 import com.bank.modules.customer.entity.Customer;
 import com.bank.modules.transaction.entity.Transaction;
@@ -42,6 +43,9 @@ public class Account {
 
     @Column(name = "account_number", columnDefinition = "VARCHAR(15)", length = 15, unique = true, nullable = false)
     private String accountNumber;
+
+    @Column(name = "iban", length = 34, unique = true)
+    private String iban;
 
     @Column(
         columnDefinition = "decimal(18,2) DEFAULT 0",
@@ -89,6 +93,7 @@ public class Account {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
         accountNumber = AccountNumberGenerator.generateAccountNumber();
+        iban = IbanGenerator.generateFromAccountNumber(accountNumber);
         generateUuid();
         balance = BigDecimal.valueOf(0);
         status = AccountStatus.INACTIVE;
