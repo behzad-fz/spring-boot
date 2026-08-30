@@ -180,11 +180,16 @@ class TransactionServiceTest {
     }
 
     @Test
-    void paymentToOwnedRecipientDebitsBalance() {
+    void paymentToOwnedRecipientCreditsRecipientAccount() {
         Customer customer = new Customer();
         customer.setUUID("customer-uuid");
 
         account.setCustomer(customer);
+
+        Account target = new Account();
+        target.setUUID("target-account");
+        target.setBalance(new BigDecimal("50.00"));
+        target.setCustomer(new Customer());
 
         Recipient recipient = Recipient.builder()
                 .id(1L)
@@ -200,6 +205,8 @@ class TransactionServiceTest {
                 .build();
 
         when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
+        when(accountRepository.findByUUIDForUpdate("target-account")).thenReturn(target);
+        when(accountRepository.findByIban("NL91ABNA0417164300")).thenReturn(target);
         when(recipientRepository.findByIban("NL91ABNA0417164300")).thenReturn(recipient);
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -207,9 +214,40 @@ class TransactionServiceTest {
         Transaction result = transactionService.payToRecipient("account-uuid", request);
 
         assertEquals(0, new BigDecimal("70.00").compareTo(account.getBalance()));
+        assertEquals(0, new BigDecimal("80.00").compareTo(target.getBalance()));
         assertEquals(TransactionType.PAYMENT, result.getTransactionType());
         assertEquals(TransactionStatus.COMPLETED, result.getStatus());
         verify(recipientRepository).findByIban("NL91ABNA0417164300");
+    }
+
+    @Test
+    void paymentToIbanWithNoInternalAccountIsRejected() {
+        Customer customer = new Customer();
+        customer.setUUID("customer-uuid");
+        account.setCustomer(customer);
+
+        Recipient recipient = Recipient.builder()
+                .id(1L)
+                .iban("NL91ABNA0417164300")
+                .fullName("Jane Doe")
+                .customer(customer)
+                .build();
+
+        RecipientPaymentRequest request = RecipientPaymentRequest.builder()
+                .recipientIban("NL91ABNA0417164300")
+                .amount(new BigDecimal("30.00"))
+                .build();
+
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
+        when(recipientRepository.findByIban("NL91ABNA0417164300")).thenReturn(recipient);
+        when(accountRepository.findByIban("NL91ABNA0417164300")).thenReturn(null);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> transactionService.payToRecipient("account-uuid", request));
+
+        assertEquals(0, new BigDecimal("100.00").compareTo(account.getBalance()));
+        verify(transactionRepository, never()).save(any());
+        verify(accountRepository, never()).save(any());
     }
 
     @Test

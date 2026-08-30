@@ -14,6 +14,8 @@ import java.util.List;
 public interface AccountRepository extends JpaRepository<Account, Long> {
     Account findByUUID(String uuid);
 
+    Account findByIban(String iban);
+
     /**
      * Pessimistic row lock (SELECT ... FOR UPDATE) for balance mutation paths,
      * so concurrent transactions serialize on the account row instead of racing
