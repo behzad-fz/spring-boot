@@ -20,3 +20,31 @@ jobs:
 
       - name: Run tests (H2 test profile)
         run: ./mvnw test
+
+  flyway-validate:
+    name: Validate Flyway migrations
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: test
+          MYSQL_DATABASE: bank
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Apply Flyway migrations to MySQL
+        run: ./mvnw flyway:migrate

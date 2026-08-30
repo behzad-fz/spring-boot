@@ -802,6 +802,31 @@ class TransactionServiceTest {
     }
 
     @Test
+void processDueScheduledTransactionDoesNotPoisonBatchOnUnexpectedError() {
+        Customer customer = new Customer();
+        customer.setUUID("customer-uuid");
+        account.setCustomer(customer);
+
+        ScheduledTransaction scheduled = ScheduledTransaction.builder()
+                .id(1L)
+                .amount(new BigDecimal("25.00"))
+                .transactionType(TransactionType.WITHDRAWAL)
+                .status(TransactionStatus.PENDING)
+                .account(account)
+                .build();
+
+        when(scheduledTransactionRepository.findByStatusAndRunAtLessThanEqual(any(), any()))
+                .thenReturn(List.of(scheduled));
+        when(accountRepository.findByUUIDForUpdate("account-uuid"))
+                .thenThrow(new RuntimeException("transient failure"));
+
+        assertDoesNotThrow(() -> transactionService.processDueScheduledTransactions());
+
+        assertEquals(TransactionStatus.FAILED, scheduled.getStatus());
+        assertNotNull(scheduled.getStatusExplanation());
+    }
+
+    @Test
     void nonCustomerPrincipalCannotTransact() {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("admin", null,

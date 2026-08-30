@@ -24,15 +24,19 @@ import com.bank.modules.transaction.request.NewTransaction;
 import com.bank.modules.transaction.request.RecipientPaymentRequest;
 import com.bank.modules.transaction.request.ScheduleTransactionRequest;
 import com.bank.modules.transaction.request.TransferRequest;
-import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -48,6 +52,9 @@ public class TransactionService {
 
     private static final Set<AccountStatus> BLOCKED_STATUSES = EnumSet.of(
             AccountStatus.CLOSED, AccountStatus.SUSPENDED, AccountStatus.UNDER_INVESTIGATION);
+
+    @Autowired
+    private ApplicationContext applicationContext;
 
     public TransactionService(TransactionRepository transactionRepository, AccountRepository accountRepository,
                               RecipientRepository recipientRepository,
@@ -162,25 +169,40 @@ public class TransactionService {
         List<ScheduledTransaction> due = scheduledTransactionRepository
                 .findByStatusAndRunAtLessThanEqual(TransactionStatus.PENDING, LocalDateTime.now());
 
+        List<ScheduledTransaction> processed = new ArrayList<>();
         for (ScheduledTransaction scheduled : due) {
             try {
-                createTransaction(NewTransaction.builder()
-                        .amount(scheduled.getAmount())
-                        .transactionType("WITHDRAWAL")
-                        .description(scheduled.getDescription())
-                        .build(), scheduled.getAccount().getUUID());
-
-                scheduled.setStatus(TransactionStatus.COMPLETED);
-                scheduled.setProcessedAt(LocalDateTime.now());
-            } catch (InsufficientFundsException ex) {
+                proxy().processOneScheduled(scheduled);
+            } catch (Exception ex) {
                 scheduled.setStatus(TransactionStatus.FAILED);
                 scheduled.setProcessedAt(LocalDateTime.now());
                 scheduled.setStatusExplanation(ex.getMessage());
+                scheduledTransactionRepository.save(scheduled);
             }
-            scheduledTransactionRepository.save(scheduled);
+            processed.add(scheduled);
         }
 
-        return due;
+        return processed;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void processOneScheduled(ScheduledTransaction scheduled) {
+        createTransaction(NewTransaction.builder()
+                .amount(scheduled.getAmount())
+                .transactionType("WITHDRAWAL")
+                .description(scheduled.getDescription())
+                .build(), scheduled.getAccount().getUUID());
+
+        scheduled.setStatus(TransactionStatus.COMPLETED);
+        scheduled.setProcessedAt(LocalDateTime.now());
+        scheduledTransactionRepository.save(scheduled);
+    }
+
+    private TransactionService proxy() {
+        if (applicationContext != null) {
+            return applicationContext.getBean(TransactionService.class);
+        }
+        return this;
     }
 
     @Transactional

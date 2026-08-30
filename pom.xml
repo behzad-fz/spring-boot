@@ -130,6 +130,22 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+			<plugin>
+				<groupId>org.flywaydb</groupId>
+				<artifactId>flyway-maven-plugin</artifactId>
+				<version>9.16.0</version>
+				<configuration>
+					<url>jdbc:mysql://localhost:3306/bank</url>
+					<user>root</user>
+					<password>test</password>
+					<schemas>
+						<schema>bank</schema>
+					</schemas>
+					<locations>
+						<location>classpath:db/migration</location>
+					</locations>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 
