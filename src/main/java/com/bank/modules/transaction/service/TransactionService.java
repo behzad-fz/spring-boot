@@ -14,6 +14,7 @@ import com.bank.modules.transaction.entity.Recipient;
 import com.bank.modules.transaction.entity.ScheduledTransaction;
 import com.bank.modules.transaction.entity.Transaction;
 import com.bank.modules.transaction.entity.TransferResult;
+import com.bank.modules.transaction.enums.Recurrence;
 import com.bank.modules.transaction.enums.TransactionStatus;
 import com.bank.modules.transaction.enums.TransactionType;
 import com.bank.modules.transaction.repository.RecipientRepository;
@@ -152,12 +153,21 @@ public class TransactionService {
         Account account = requireAccount(accountUUID);
         requireOperable(account);
 
+        Recurrence recurrence = request.getRecurrence() == null ? Recurrence.ONCE : request.getRecurrence();
+        if (recurrence != Recurrence.ONCE && request.getRecurrenceEnd() != null
+                && !request.getRunAt().isBefore(request.getRecurrenceEnd())) {
+            throw new IllegalArgumentException("Recurrence end must be after the first run");
+        }
+
         ScheduledTransaction scheduled = ScheduledTransaction.builder()
                 .amount(request.getAmount())
                 .description(request.getDescription())
                 .transactionType(TransactionType.WITHDRAWAL)
                 .runAt(request.getRunAt())
                 .status(TransactionStatus.PENDING)
+                .recurrence(recurrence)
+                .recurrenceEnd(request.getRecurrenceEnd())
+                .occurrencesLeft(request.getOccurrencesLeft())
                 .account(account)
                 .build();
 
@@ -196,6 +206,68 @@ public class TransactionService {
         scheduled.setStatus(TransactionStatus.COMPLETED);
         scheduled.setProcessedAt(LocalDateTime.now());
         scheduledTransactionRepository.save(scheduled);
+
+        ScheduledTransaction next = materializeNextOccurrence(scheduled);
+        if (next != null) {
+            scheduledTransactionRepository.save(next);
+        }
+    }
+
+    @Transactional
+    public ScheduledTransaction cancelScheduledTransaction(String accountUUID, Long scheduledId) {
+        requireAccount(accountUUID);
+
+        ScheduledTransaction scheduled = scheduledTransactionRepository.findById(scheduledId)
+                .orElseThrow(() -> new ResourceNotFoundException("Scheduled transaction not found"));
+        if (scheduled.getAccount() == null || !accountUUID.equals(scheduled.getAccount().getUUID())) {
+            throw new ResourceNotFoundException("Scheduled transaction not found");
+        }
+        if (scheduled.getStatus() != TransactionStatus.PENDING) {
+            throw new IllegalArgumentException("Only pending scheduled transactions can be cancelled");
+        }
+
+        scheduled.setStatus(TransactionStatus.CANCELED);
+        scheduled.setStatusExplanation("Cancelled by customer");
+        return scheduledTransactionRepository.save(scheduled);
+    }
+
+    private ScheduledTransaction materializeNextOccurrence(ScheduledTransaction scheduled) {
+        if (scheduled.getRecurrence() == null || scheduled.getRecurrence() == Recurrence.ONCE) {
+            return null;
+        }
+
+        LocalDateTime nextRunAt;
+        if (scheduled.getRecurrence() == Recurrence.WEEKLY) {
+            nextRunAt = scheduled.getRunAt().plusWeeks(1);
+        } else if (scheduled.getRecurrence() == Recurrence.MONTHLY) {
+            nextRunAt = scheduled.getRunAt().plusMonths(1);
+        } else {
+            return null;
+        }
+
+        Integer nextOccurrencesLeft = scheduled.getOccurrencesLeft();
+        if (nextOccurrencesLeft != null) {
+            if (nextOccurrencesLeft <= 1) {
+                return null;
+            }
+            nextOccurrencesLeft = nextOccurrencesLeft - 1;
+        }
+
+        if (scheduled.getRecurrenceEnd() != null && nextRunAt.isAfter(scheduled.getRecurrenceEnd())) {
+            return null;
+        }
+
+        return ScheduledTransaction.builder()
+                .amount(scheduled.getAmount())
+                .description(scheduled.getDescription())
+                .transactionType(scheduled.getTransactionType())
+                .runAt(nextRunAt)
+                .status(TransactionStatus.PENDING)
+                .recurrence(scheduled.getRecurrence())
+                .recurrenceEnd(scheduled.getRecurrenceEnd())
+                .occurrencesLeft(nextOccurrencesLeft)
+                .account(scheduled.getAccount())
+                .build();
     }
 
     private TransactionService proxy() {

@@ -1,5 +1,6 @@
 package com.bank.modules.transaction.request;
 
+import com.bank.modules.transaction.enums.Recurrence;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -26,4 +27,12 @@ public class ScheduleTransactionRequest {
     @NotNull
     @Future(message = "Run-at must be in the future")
     private LocalDateTime runAt;
+
+    private Recurrence recurrence;
+
+    @Future(message = "Recurrence end must be in the future")
+    private LocalDateTime recurrenceEnd;
+
+    @Positive(message = "Occurrences must be positive")
+    private Integer occurrencesLeft;
 }

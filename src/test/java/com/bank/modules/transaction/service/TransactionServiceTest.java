@@ -15,6 +15,7 @@ import com.bank.modules.transaction.entity.Recipient;
 import com.bank.modules.transaction.entity.ScheduledTransaction;
 import com.bank.modules.transaction.entity.Transaction;
 import com.bank.modules.transaction.entity.TransferResult;
+import com.bank.modules.transaction.enums.Recurrence;
 import com.bank.modules.transaction.enums.TransactionStatus;
 import com.bank.modules.transaction.enums.TransactionType;
 import com.bank.modules.transaction.repository.RecipientRepository;
@@ -41,7 +42,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -824,6 +827,196 @@ void processDueScheduledTransactionDoesNotPoisonBatchOnUnexpectedError() {
 
         assertEquals(TransactionStatus.FAILED, scheduled.getStatus());
         assertNotNull(scheduled.getStatusExplanation());
+    }
+
+    @Test
+    void scheduleRecurringWeeklyStoresRecurrence() {
+        Customer customer = new Customer();
+        customer.setUUID("customer-uuid");
+        account.setCustomer(customer);
+        authenticateAs(customer);
+
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
+        when(scheduledTransactionRepository.save(any(ScheduledTransaction.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        ScheduleTransactionRequest request = ScheduleTransactionRequest.builder()
+                .amount(new BigDecimal("25.00"))
+                .description("standing order")
+                .runAt(LocalDateTime.now().plusDays(1))
+                .recurrence(Recurrence.WEEKLY)
+                .occurrencesLeft(3)
+                .build();
+
+        ScheduledTransaction result = transactionService.scheduleTransaction("account-uuid", request);
+
+        assertEquals(Recurrence.WEEKLY, result.getRecurrence());
+        assertEquals(3, result.getOccurrencesLeft());
+        assertEquals(TransactionStatus.PENDING, result.getStatus());
+    }
+
+    @Test
+    void scheduleWithRecurrenceEndBeforeFirstRunIsRejected() {
+        Customer customer = new Customer();
+        customer.setUUID("customer-uuid");
+        account.setCustomer(customer);
+        authenticateAs(customer);
+
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
+
+        ScheduleTransactionRequest request = ScheduleTransactionRequest.builder()
+                .amount(new BigDecimal("25.00"))
+                .runAt(LocalDateTime.now().plusDays(1))
+                .recurrence(Recurrence.WEEKLY)
+                .recurrenceEnd(LocalDateTime.now())
+                .build();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> transactionService.scheduleTransaction("account-uuid", request));
+
+        verify(scheduledTransactionRepository, never()).save(any());
+    }
+
+    @Test
+    void processDueScheduledTransactionMaterializesNextWeeklyOccurrence() {
+        Customer customer = new Customer();
+        customer.setUUID("customer-uuid");
+        account.setCustomer(customer);
+
+        LocalDateTime firstRun = LocalDateTime.now().minusMinutes(1);
+
+        ScheduledTransaction scheduled = ScheduledTransaction.builder()
+                .id(1L)
+                .amount(new BigDecimal("25.00"))
+                .transactionType(TransactionType.WITHDRAWAL)
+                .status(TransactionStatus.PENDING)
+                .runAt(firstRun)
+                .recurrence(Recurrence.WEEKLY)
+                .occurrencesLeft(3)
+                .account(account)
+                .build();
+
+        List<ScheduledTransaction> saved = new ArrayList<>();
+        when(scheduledTransactionRepository.findByStatusAndRunAtLessThanEqual(any(), any()))
+                .thenReturn(List.of(scheduled));
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(scheduledTransactionRepository.save(any(ScheduledTransaction.class)))
+                .thenAnswer(invocation -> {
+                    ScheduledTransaction s = invocation.getArgument(0);
+                    saved.add(s);
+                    return s;
+                });
+
+        transactionService.processDueScheduledTransactions();
+
+        assertEquals(2, saved.size());
+        assertEquals(TransactionStatus.COMPLETED, saved.get(0).getStatus());
+        assertEquals(TransactionStatus.PENDING, saved.get(1).getStatus());
+        assertEquals(firstRun.plusWeeks(1), saved.get(1).getRunAt());
+        assertEquals(2, saved.get(1).getOccurrencesLeft());
+    }
+
+    @Test
+    void processDueScheduledTransactionStopsWhenOccurrencesExhausted() {
+        Customer customer = new Customer();
+        customer.setUUID("customer-uuid");
+        account.setCustomer(customer);
+
+        ScheduledTransaction scheduled = ScheduledTransaction.builder()
+                .id(1L)
+                .amount(new BigDecimal("25.00"))
+                .transactionType(TransactionType.WITHDRAWAL)
+                .status(TransactionStatus.PENDING)
+                .runAt(LocalDateTime.now().minusMinutes(1))
+                .recurrence(Recurrence.WEEKLY)
+                .occurrencesLeft(1)
+                .account(account)
+                .build();
+
+        List<ScheduledTransaction> saved = new ArrayList<>();
+        when(scheduledTransactionRepository.findByStatusAndRunAtLessThanEqual(any(), any()))
+                .thenReturn(List.of(scheduled));
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(scheduledTransactionRepository.save(any(ScheduledTransaction.class)))
+                .thenAnswer(invocation -> {
+                    ScheduledTransaction s = invocation.getArgument(0);
+                    saved.add(s);
+                    return s;
+                });
+
+        transactionService.processDueScheduledTransactions();
+
+        assertEquals(1, saved.size());
+        assertEquals(TransactionStatus.COMPLETED, saved.get(0).getStatus());
+    }
+
+    @Test
+    void processDueScheduledTransactionStopsWhenEndDatePassed() {
+        Customer customer = new Customer();
+        customer.setUUID("customer-uuid");
+        account.setCustomer(customer);
+
+        ScheduledTransaction scheduled = ScheduledTransaction.builder()
+                .id(1L)
+                .amount(new BigDecimal("25.00"))
+                .transactionType(TransactionType.WITHDRAWAL)
+                .status(TransactionStatus.PENDING)
+                .runAt(LocalDateTime.now().minusMinutes(1))
+                .recurrence(Recurrence.WEEKLY)
+                .recurrenceEnd(LocalDateTime.now().plusDays(2))
+                .account(account)
+                .build();
+
+        List<ScheduledTransaction> saved = new ArrayList<>();
+        when(scheduledTransactionRepository.findByStatusAndRunAtLessThanEqual(any(), any()))
+                .thenReturn(List.of(scheduled));
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(scheduledTransactionRepository.save(any(ScheduledTransaction.class)))
+                .thenAnswer(invocation -> {
+                    ScheduledTransaction s = invocation.getArgument(0);
+                    saved.add(s);
+                    return s;
+                });
+
+        transactionService.processDueScheduledTransactions();
+
+        assertEquals(1, saved.size());
+        assertEquals(TransactionStatus.COMPLETED, saved.get(0).getStatus());
+    }
+
+    @Test
+    void cancelPendingScheduledTransactionSetsCancelled() {
+        Customer customer = new Customer();
+        customer.setUUID("customer-uuid");
+        account.setCustomer(customer);
+        authenticateAs(customer);
+
+        ScheduledTransaction scheduled = ScheduledTransaction.builder()
+                .id(1L)
+                .amount(new BigDecimal("25.00"))
+                .transactionType(TransactionType.WITHDRAWAL)
+                .status(TransactionStatus.PENDING)
+                .runAt(LocalDateTime.now().plusDays(1))
+                .recurrence(Recurrence.WEEKLY)
+                .occurrencesLeft(3)
+                .account(account)
+                .build();
+
+        when(accountRepository.findByUUIDForUpdate("account-uuid")).thenReturn(account);
+        when(scheduledTransactionRepository.findById(1L)).thenReturn(Optional.of(scheduled));
+        when(scheduledTransactionRepository.save(any(ScheduledTransaction.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        ScheduledTransaction result = transactionService.cancelScheduledTransaction("account-uuid", 1L);
+
+        assertEquals(TransactionStatus.CANCELED, result.getStatus());
+        verify(scheduledTransactionRepository).save(scheduled);
     }
 
     @Test

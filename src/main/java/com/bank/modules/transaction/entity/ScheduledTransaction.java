@@ -1,6 +1,7 @@
 package com.bank.modules.transaction.entity;
 
 import com.bank.modules.account.entity.Account;
+import com.bank.modules.transaction.enums.Recurrence;
 import com.bank.modules.transaction.enums.TransactionStatus;
 import com.bank.modules.transaction.enums.TransactionType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -49,6 +50,16 @@ public class ScheduledTransaction {
 
     @Column(name = "status_explanation")
     private String statusExplanation;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "recurrence")
+    private Recurrence recurrence;
+
+    @Column(name = "recurrence_end")
+    private LocalDateTime recurrenceEnd;
+
+    @Column(name = "occurrences_left")
+    private Integer occurrencesLeft;
 
     @ManyToOne
     @JoinColumn(name = "account_id")
