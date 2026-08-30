@@ -91,6 +91,16 @@ public class TransactionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(scheduled);
     }
 
+    @PostMapping("/scheduled/{scheduledId}/cancel")
+    private ResponseEntity<ScheduledTransaction> cancelScheduledTransaction(
+        @PathVariable String accountUUID,
+        @PathVariable Long scheduledId
+    ) {
+        ScheduledTransaction scheduled = transactionService.cancelScheduledTransaction(accountUUID, scheduledId);
+
+        return ResponseEntity.ok(scheduled);
+    }
+
     @PostMapping("/transfer")
     private ResponseEntity<TransferResult> transfer(
         @Valid @RequestBody TransferRequest request,
