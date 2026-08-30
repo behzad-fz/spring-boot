@@ -5,53 +5,31 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.oauth2.jwt.JwtClaimsSet;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Service
 public class TokenService {
 
-    private static final String SECRET_KEY = "576D5A7134743777217A25432A462D4A614E645267556B58703272357538782F";
+    private final String secretKey;
 
-    private final JwtEncoder encoder;
-
-    public TokenService(JwtEncoder encoder) {
-        this.encoder = encoder;
+    public TokenService(@Value("${jwt.secret}") String secretKey) {
+        if (secretKey == null || secretKey.isBlank()) {
+            throw new IllegalStateException(
+                    "JWT signing key is not configured (set jwt.secret / JWT_SECRET)");
+        }
+        this.secretKey = secretKey;
     }
 
-//    public String generateToken(Authentication authentication) {
-//        Instant now = Instant.now();
-//        String scope = authentication.getAuthorities().stream()
-//                .map(GrantedAuthority::getAuthority)
-//                .collect(Collectors.joining(" "));
-//
-//        JwtClaimsSet claimsSet = JwtClaimsSet.builder()
-//                .issuer("self")
-//                .issuedAt(now)
-//                .expiresAt(now.plus(1, ChronoUnit.HOURS))
-//                .subject(authentication.getName())
-//                .claim("scope", scope)
-//                .build();
-//
-//        return this.encoder.encode(JwtEncoderParameters.from(claimsSet)).getTokenValue();
-//    }
-
     public String generateToken(UserDetails userDetails, String userType) {
-        return generateToken(new HashMap<>(),userDetails, userType);
+        return generateToken(new HashMap<>(), userDetails, userType);
     }
 
     public String generateToken(
@@ -104,7 +82,7 @@ public class TokenService {
     }
 
     private Key getSignInKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
