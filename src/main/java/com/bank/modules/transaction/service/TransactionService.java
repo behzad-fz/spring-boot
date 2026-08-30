@@ -26,12 +26,17 @@ import com.bank.modules.transaction.request.ScheduleTransactionRequest;
 import com.bank.modules.transaction.request.TransferRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import jakarta.persistence.criteria.Predicate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -106,6 +111,36 @@ public class TransactionService {
         Account account = requireAccount(accountUUID);
 
         return transactionRepository.findByAccountUUIDOrderByInitiatedAtDesc(account.getUUID());
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Transaction> getTransactions(String accountUUID, LocalDateTime from, LocalDateTime to,
+                                             TransactionType type, BigDecimal minAmount, BigDecimal maxAmount,
+                                             Pageable pageable) {
+        Account account = requireAccount(accountUUID);
+
+        Specification<Transaction> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("account").get("UUID"), account.getUUID()));
+            if (from != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("initiatedAt"), from));
+            }
+            if (to != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("initiatedAt"), to));
+            }
+            if (type != null) {
+                predicates.add(cb.equal(root.get("transactionType"), type));
+            }
+            if (minAmount != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("amount"), minAmount));
+            }
+            if (maxAmount != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("amount"), maxAmount));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        return transactionRepository.findAll(spec, pageable);
     }
 
     @Transactional
