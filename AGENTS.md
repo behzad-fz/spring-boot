@@ -13,7 +13,7 @@ not any other language's.
 
 ## Work intake
 
-- Work enters through the `ai-ready` label on Jira tickets (SCRUM project).
+- Work enters through the `ai-ready` label on Jira tickets (BK project).
   The human applies the label to a ticket in To Do when it is ready.
 - The AI pulls any To Do ticket carrying the `ai-ready` label and runs it.
 - The ticket description is the contract: it must contain the requirements

@@ -77,5 +77,5 @@ good proposals.
 
 ## Dependencies
 
-- Reviewer subagent (SCRUM-32) and mentor skill (SCRUM-25) exist to be cross-referenced.
-- Child ticket under epic SCRUM-20.
+- Reviewer subagent (BK-32) and mentor skill (BK-25) exist to be cross-referenced.
+- Child ticket under epic BK-20.

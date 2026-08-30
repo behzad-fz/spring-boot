@@ -8,7 +8,7 @@ what went wrong, and the rule that prevents it.
 
 ---
 
-## 2026-08-19 — SCRUM-52 correction
+## 2026-08-19 — BK-52 correction
 
 **What went wrong:** The planner claimed `CustomLocalDateDeserializer` "silently
 swallows parse exceptions." False — the code wraps and rethrows as IOException.
@@ -18,7 +18,7 @@ read the exact catch block and trace where the exception goes. Quote the wrap/re
 in evidence. "Catches broadly" and "swallows" are different claims — verify which one
 holds.
 
-## 2026-08-19 — SCRUM-53 correction
+## 2026-08-19 — BK-53 correction
 
 **What went wrong:** The planner called `UserController.findUserById` a security leak
 ("exposes principal name"). It returns the authenticated caller's own name back to

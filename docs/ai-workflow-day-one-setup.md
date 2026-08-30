@@ -49,7 +49,7 @@ job's daily routine. It's a checklist — do the setup once, then the daily job 
 
 - [ ] CI exists and runs the test suite on every PR.
 - [ ] If CI does **not** exist: the AI's first ticket is building it (this is exactly
-      what SCRUM-12 did in training). Nothing else should be pulled until CI is green.
+      what BK-12 did in training). Nothing else should be pulled until CI is green.
 - [ ] The AI's local test run and CI must agree. If they disagree (e.g. Java version,
       profile), fix the toolchain mismatch before trusting the gate.
 
