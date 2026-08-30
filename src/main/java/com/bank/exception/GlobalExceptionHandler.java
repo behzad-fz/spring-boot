@@ -73,6 +73,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(body);
     }
 
+@ExceptionHandler(UnknownCurrencyPairException.class)
+    public ResponseEntity<ErrorResponse> handleUnknownCurrencyPair(UnknownCurrencyPairException ex) {
+        ErrorResponse body = ErrorResponse.of(
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                ex.getMessage()
+        );
+
+        return ResponseEntity.badRequest().body(body);
+    }
+
     @ExceptionHandler(AccountNotOperableException.class)
     public ResponseEntity<ErrorResponse> handleAccountNotOperable(AccountNotOperableException ex) {
         ErrorResponse body = ErrorResponse.of(
@@ -83,7 +94,18 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.badRequest().body(body);
     }
-  
+
+    @ExceptionHandler(DuplicateRecipientException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateRecipient(DuplicateRecipientException ex) {
+        ErrorResponse body = ErrorResponse.of(
+                HttpStatus.CONFLICT.value(),
+                HttpStatus.CONFLICT.getReasonPhrase(),
+                ex.getMessage()
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
         ErrorResponse body = ErrorResponse.of(
