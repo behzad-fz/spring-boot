@@ -21,5 +21,32 @@
       "path": "docs/superpowers/specs",
       "description": "Use for approved design specs (e.g. the backlog planner design)"
     }
+  },
+  "permission": {
+    "edit": "allow",
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "list": "allow",
+    "task": "allow",
+    "todowrite": "allow",
+    "webfetch": "allow",
+    "skill": "allow",
+    "external_directory": {
+      "*": "allow",
+      "**/secrets/**": "deny",
+      "**/.ssh/**": "deny"
+    },
+    "bash": {
+      "*": "allow",
+      "git push --force*": "deny",
+      "git push -f*": "deny",
+      "git push --force-with-lease*": "deny",
+      "git rebase*": "deny",
+      "git reset --hard*": "deny",
+      "rm -rf *": "deny",
+      "docker compose exec mysql mysql -e *DROP*": "deny",
+      "mysql -e *DROP*": "deny"
+    }
   }
 }
